@@ -54,10 +54,11 @@ namespace upper_com
                 // 定义一个套接字用于监听客户端发来的信息  包含 3 个参数(IP4 寻址协议, 流式连接, TCP 协议)
                 socketWatch = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 // 服务端发送信息 需要 1 个 IP 地址和端口号
-                string ip = this.ipValue.Text.Trim();
+                // TODO 默认使用 127.0.0.1 65533
+                string ip = "127.0.0.1";
                 IPAddress ipaddress = IPAddress.Parse(ip);
                 // 将 IP 地址和端口号绑定到网络节点 endpoint 上 
-                int port = int.Parse(this.portValue.Text.Trim());
+                int port = 65533;
                 IPEndPoint endpoint = new IPEndPoint(ipaddress, port);
                 // 监听绑定的网络节点
                 socketWatch.Bind(endpoint);
@@ -323,9 +324,6 @@ namespace upper_com
             string kVal = this.k_value.Text.Trim();
             string nVal = this.n_value.Text.Trim();
 
-            string plcIp = this.ipValue.Text.Trim();
-            string plcPort = this.portValue.Text.Trim();
-
             if (string.IsNullOrEmpty(kVal)
                 || !int.TryParse(kVal, out _)
                 || int.Parse(kVal) <= 0)
@@ -337,16 +335,6 @@ namespace upper_com
                 || int.Parse(nVal) <= 0)
             {
                 MessageBox.Show("N值输入错误，请输入大于0十进制有效数字！");
-            }
-
-            if (string.IsNullOrEmpty(plcIp) || !IsValidIPAddress(plcIp))
-            {
-                MessageBox.Show("IP 输入错误，请输入有效 IP！");
-            }
-
-            if (string.IsNullOrEmpty(plcPort) || !IsValidPort(plcPort))
-            {
-                MessageBox.Show("端口号输入错误，请输入有效端口号！");
             }
         }
 
@@ -396,7 +384,7 @@ namespace upper_com
 
         private void btnEndClick(object sender, EventArgs e)
         {
-            //MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
+            // MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
             dataFilling();
         }
 
@@ -408,7 +396,7 @@ namespace upper_com
         {
             for(int i=0; i<100; i++)
             {
-                additem(i, i + "5", 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2);
+                AddItem(new CurrentData(i, i + "5", 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2));
             }
         }
 
@@ -416,9 +404,7 @@ namespace upper_com
         /// TODO 行填充
         /// </summary>
         /// <returns>TODO</returns>
-        private void additem(int serialNo, string time, double curVal01,
-            double curValAverage01, double upperLimit01, double lowerLimit01,
-            double curVal02, double curValAverage02, double upperLimit02, double lowerLimit02)
+        private void AddItem(CurrentData currentData)
         {
             // 此处的代码不能进行循环！必须封装为一个方法，通过方法的循环，才能实现循环！
             DataGridViewRow dgvr = new DataGridViewRow();
@@ -426,16 +412,16 @@ namespace upper_com
             {
                 dgvr.Cells.Add(c.CellTemplate.Clone() as DataGridViewCell);
             }
-            dgvr.Cells[0].Value = serialNo;
-            dgvr.Cells[1].Value = time;
-            dgvr.Cells[2].Value = curVal01;
-            dgvr.Cells[3].Value = curValAverage01;
-            dgvr.Cells[4].Value = upperLimit01;
-            dgvr.Cells[5].Value = lowerLimit01;
-            dgvr.Cells[6].Value = curVal02;
-            dgvr.Cells[7].Value = curValAverage02;
-            dgvr.Cells[8].Value = upperLimit02;
-            dgvr.Cells[9].Value = lowerLimit02;
+            dgvr.Cells[0].Value = currentData.GetSerialNo();
+            dgvr.Cells[1].Value = currentData.GetTimer();
+            dgvr.Cells[2].Value = currentData.GetSmoothCur();
+            dgvr.Cells[3].Value = currentData.GetSmoothAverage();
+            dgvr.Cells[4].Value = currentData.GetSmoothUpper();
+            dgvr.Cells[5].Value = currentData.GetSmoothLower();
+            dgvr.Cells[6].Value = currentData.GetMutationCur();
+            dgvr.Cells[7].Value = currentData.GetMutationAverage();
+            dgvr.Cells[8].Value = currentData.GetMutationUpper();
+            dgvr.Cells[9].Value = currentData.GetMutationLower();
             this.dataGridView1.Rows.Add(dgvr);
         }
 
@@ -443,5 +429,7 @@ namespace upper_com
         {
 
         }
+
+
     }
 }

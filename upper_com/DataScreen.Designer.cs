@@ -33,10 +33,6 @@ namespace upper_com
             this.splitter1 = new System.Windows.Forms.Splitter();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.btnEnd = new System.Windows.Forms.Button();
-            this.portValue = new System.Windows.Forms.TextBox();
-            this.ipValue = new System.Windows.Forms.TextBox();
-            this.portName = new System.Windows.Forms.Label();
-            this.ipAddress = new System.Windows.Forms.Label();
             this.warningMsg = new System.Windows.Forms.Label();
             this.startBtn = new System.Windows.Forms.Button();
             this.n_value = new System.Windows.Forms.TextBox();
@@ -81,10 +77,6 @@ namespace upper_com
             // splitContainer1.Panel1
             // 
             this.splitContainer1.Panel1.Controls.Add(this.btnEnd);
-            this.splitContainer1.Panel1.Controls.Add(this.portValue);
-            this.splitContainer1.Panel1.Controls.Add(this.ipValue);
-            this.splitContainer1.Panel1.Controls.Add(this.portName);
-            this.splitContainer1.Panel1.Controls.Add(this.ipAddress);
             this.splitContainer1.Panel1.Controls.Add(this.warningMsg);
             this.splitContainer1.Panel1.Controls.Add(this.startBtn);
             this.splitContainer1.Panel1.Controls.Add(this.n_value);
@@ -107,7 +99,7 @@ namespace upper_com
             this.btnEnd.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.btnEnd.Font = new System.Drawing.Font("SimSun", 10.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.btnEnd.ForeColor = System.Drawing.SystemColors.Highlight;
-            this.btnEnd.Location = new System.Drawing.Point(620, 96);
+            this.btnEnd.Location = new System.Drawing.Point(473, 96);
             this.btnEnd.Margin = new System.Windows.Forms.Padding(4);
             this.btnEnd.Name = "btnEnd";
             this.btnEnd.Size = new System.Drawing.Size(103, 42);
@@ -115,50 +107,6 @@ namespace upper_com
             this.btnEnd.Text = "停止采集";
             this.btnEnd.UseVisualStyleBackColor = true;
             this.btnEnd.Click += new System.EventHandler(this.btnEndClick);
-            // 
-            // portValue
-            // 
-            this.portValue.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.portValue.Location = new System.Drawing.Point(147, 105);
-            this.portValue.Margin = new System.Windows.Forms.Padding(4);
-            this.portValue.Name = "portValue";
-            this.portValue.Size = new System.Drawing.Size(102, 25);
-            this.portValue.TabIndex = 11;
-            this.portValue.Text = "65533";
-            // 
-            // ipValue
-            // 
-            this.ipValue.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.ipValue.Location = new System.Drawing.Point(147, 55);
-            this.ipValue.Margin = new System.Windows.Forms.Padding(4);
-            this.ipValue.Name = "ipValue";
-            this.ipValue.Size = new System.Drawing.Size(102, 25);
-            this.ipValue.TabIndex = 10;
-            this.ipValue.Text = "192.168.204.1";
-            this.ipValue.TextChanged += new System.EventHandler(this.textBox2_TextChanged);
-            // 
-            // portName
-            // 
-            this.portName.AutoSize = true;
-            this.portName.Font = new System.Drawing.Font("SimSun", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.portName.Location = new System.Drawing.Point(49, 108);
-            this.portName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.portName.Name = "portName";
-            this.portName.Size = new System.Drawing.Size(80, 18);
-            this.portName.TabIndex = 9;
-            this.portName.Text = "端  口：";
-            // 
-            // ipAddress
-            // 
-            this.ipAddress.AutoSize = true;
-            this.ipAddress.Font = new System.Drawing.Font("SimSun", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.ipAddress.Location = new System.Drawing.Point(49, 58);
-            this.ipAddress.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-            this.ipAddress.Name = "ipAddress";
-            this.ipAddress.Size = new System.Drawing.Size(80, 18);
-            this.ipAddress.TabIndex = 8;
-            this.ipAddress.Text = "IP地址：";
-            this.ipAddress.Click += new System.EventHandler(this.label4_Click);
             // 
             // warningMsg
             // 
@@ -178,7 +126,7 @@ namespace upper_com
             this.startBtn.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.startBtn.Font = new System.Drawing.Font("SimSun", 10.8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
             this.startBtn.ForeColor = System.Drawing.SystemColors.Highlight;
-            this.startBtn.Location = new System.Drawing.Point(620, 32);
+            this.startBtn.Location = new System.Drawing.Point(473, 32);
             this.startBtn.Margin = new System.Windows.Forms.Padding(4);
             this.startBtn.Name = "startBtn";
             this.startBtn.Size = new System.Drawing.Size(103, 42);
@@ -190,7 +138,7 @@ namespace upper_com
             // n_value
             // 
             this.n_value.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.n_value.Location = new System.Drawing.Point(441, 105);
+            this.n_value.Location = new System.Drawing.Point(145, 99);
             this.n_value.Margin = new System.Windows.Forms.Padding(4);
             this.n_value.Name = "n_value";
             this.n_value.Size = new System.Drawing.Size(102, 25);
@@ -200,7 +148,7 @@ namespace upper_com
             // k_value
             // 
             this.k_value.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.k_value.Location = new System.Drawing.Point(441, 55);
+            this.k_value.Location = new System.Drawing.Point(145, 49);
             this.k_value.Margin = new System.Windows.Forms.Padding(4);
             this.k_value.Name = "k_value";
             this.k_value.Size = new System.Drawing.Size(102, 25);
@@ -212,7 +160,7 @@ namespace upper_com
             // 
             this.nLabel.AutoSize = true;
             this.nLabel.Font = new System.Drawing.Font("SimSun", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.nLabel.Location = new System.Drawing.Point(351, 108);
+            this.nLabel.Location = new System.Drawing.Point(55, 102);
             this.nLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.nLabel.Name = "nLabel";
             this.nLabel.Size = new System.Drawing.Size(53, 18);
@@ -223,7 +171,7 @@ namespace upper_com
             // 
             this.kLabel.AutoSize = true;
             this.kLabel.Font = new System.Drawing.Font("SimSun", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.kLabel.Location = new System.Drawing.Point(351, 58);
+            this.kLabel.Location = new System.Drawing.Point(55, 52);
             this.kLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.kLabel.Name = "kLabel";
             this.kLabel.Size = new System.Drawing.Size(53, 18);
@@ -357,10 +305,6 @@ namespace upper_com
         private System.Windows.Forms.Button startBtn;
         private System.Windows.Forms.DataGridView dataGridView1;
         private System.Windows.Forms.Label warningMsg;
-        private System.Windows.Forms.TextBox portValue;
-        private System.Windows.Forms.TextBox ipValue;
-        private System.Windows.Forms.Label portName;
-        private System.Windows.Forms.Label ipAddress;
         private System.Windows.Forms.Button btnEnd;
         private System.Windows.Forms.DataGridViewTextBoxColumn serialNo;
         private System.Windows.Forms.DataGridViewTextBoxColumn time;
