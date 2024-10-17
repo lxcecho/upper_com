@@ -41,15 +41,15 @@ namespace upper_com
             this.kLabel = new System.Windows.Forms.Label();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.serialNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.time = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.curVal01 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.curValAverage01 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.upperLimit01 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.lowerLimit01 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.curVal02 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.curValAverage02 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.upperLimit02 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.lowerLimit02 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.timer = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothCur = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationCur = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -185,15 +185,15 @@ namespace upper_com
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView1.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.serialNo,
-            this.time,
-            this.curVal01,
-            this.curValAverage01,
-            this.upperLimit01,
-            this.lowerLimit01,
-            this.curVal02,
-            this.curValAverage02,
-            this.upperLimit02,
-            this.lowerLimit02});
+            this.timer,
+            this.smoothCur,
+            this.smoothAverage,
+            this.smoothUpper,
+            this.smoothLower,
+            this.mutationCur,
+            this.mutationAverage,
+            this.mutationUpper,
+            this.mutationLower});
             this.dataGridView1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridView1.Location = new System.Drawing.Point(0, 0);
             this.dataGridView1.Margin = new System.Windows.Forms.Padding(4);
@@ -212,68 +212,68 @@ namespace upper_com
             this.serialNo.MinimumWidth = 6;
             this.serialNo.Name = "serialNo";
             // 
-            // time
+            // timer
             // 
-            this.time.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.time.HeaderText = "时间";
-            this.time.MinimumWidth = 6;
-            this.time.Name = "time";
+            this.timer.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.timer.HeaderText = "时间";
+            this.timer.MinimumWidth = 6;
+            this.timer.Name = "timer";
             // 
-            // curVal01
+            // smoothCur
             // 
-            this.curVal01.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.curVal01.HeaderText = "电流I_1";
-            this.curVal01.MinimumWidth = 6;
-            this.curVal01.Name = "curVal01";
+            this.smoothCur.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.smoothCur.HeaderText = "电流I_1";
+            this.smoothCur.MinimumWidth = 6;
+            this.smoothCur.Name = "smoothCur";
             // 
-            // curValAverage01
+            // smoothAverage
             // 
-            this.curValAverage01.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.curValAverage01.HeaderText = "电流I_1均值";
-            this.curValAverage01.MinimumWidth = 6;
-            this.curValAverage01.Name = "curValAverage01";
+            this.smoothAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.smoothAverage.HeaderText = "电流I_1均值";
+            this.smoothAverage.MinimumWidth = 6;
+            this.smoothAverage.Name = "smoothAverage";
             // 
-            // upperLimit01
+            // smoothUpper
             // 
-            this.upperLimit01.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.upperLimit01.HeaderText = "电流I_1上限";
-            this.upperLimit01.MinimumWidth = 6;
-            this.upperLimit01.Name = "upperLimit01";
+            this.smoothUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.smoothUpper.HeaderText = "电流I_1上限";
+            this.smoothUpper.MinimumWidth = 6;
+            this.smoothUpper.Name = "smoothUpper";
             // 
-            // lowerLimit01
+            // smoothLower
             // 
-            this.lowerLimit01.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.lowerLimit01.HeaderText = "电流I_1下限";
-            this.lowerLimit01.MinimumWidth = 6;
-            this.lowerLimit01.Name = "lowerLimit01";
+            this.smoothLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.smoothLower.HeaderText = "电流I_1下限";
+            this.smoothLower.MinimumWidth = 6;
+            this.smoothLower.Name = "smoothLower";
             // 
-            // curVal02
+            // mutationCur
             // 
-            this.curVal02.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.curVal02.HeaderText = "电流I_2";
-            this.curVal02.MinimumWidth = 6;
-            this.curVal02.Name = "curVal02";
+            this.mutationCur.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.mutationCur.HeaderText = "电流I_2";
+            this.mutationCur.MinimumWidth = 6;
+            this.mutationCur.Name = "mutationCur";
             // 
-            // curValAverage02
+            // mutationAverage
             // 
-            this.curValAverage02.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.curValAverage02.HeaderText = "电流I_2均值";
-            this.curValAverage02.MinimumWidth = 6;
-            this.curValAverage02.Name = "curValAverage02";
+            this.mutationAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.mutationAverage.HeaderText = "电流I_2均值";
+            this.mutationAverage.MinimumWidth = 6;
+            this.mutationAverage.Name = "mutationAverage";
             // 
-            // upperLimit02
+            // mutationUpper
             // 
-            this.upperLimit02.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.upperLimit02.HeaderText = "电流I_2上限";
-            this.upperLimit02.MinimumWidth = 6;
-            this.upperLimit02.Name = "upperLimit02";
+            this.mutationUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.mutationUpper.HeaderText = "电流I_2上限";
+            this.mutationUpper.MinimumWidth = 6;
+            this.mutationUpper.Name = "mutationUpper";
             // 
-            // lowerLimit02
+            // mutationLower
             // 
-            this.lowerLimit02.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.lowerLimit02.HeaderText = "电流I_2下限";
-            this.lowerLimit02.MinimumWidth = 6;
-            this.lowerLimit02.Name = "lowerLimit02";
+            this.mutationLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.mutationLower.HeaderText = "电流I_2下限";
+            this.mutationLower.MinimumWidth = 6;
+            this.mutationLower.Name = "mutationLower";
             // 
             // DataDetection
             // 
@@ -307,15 +307,15 @@ namespace upper_com
         private System.Windows.Forms.Label warningMsg;
         private System.Windows.Forms.Button btnEnd;
         private System.Windows.Forms.DataGridViewTextBoxColumn serialNo;
-        private System.Windows.Forms.DataGridViewTextBoxColumn time;
-        private System.Windows.Forms.DataGridViewTextBoxColumn curVal01;
-        private System.Windows.Forms.DataGridViewTextBoxColumn curValAverage01;
-        private System.Windows.Forms.DataGridViewTextBoxColumn upperLimit01;
-        private System.Windows.Forms.DataGridViewTextBoxColumn lowerLimit01;
-        private System.Windows.Forms.DataGridViewTextBoxColumn curVal02;
-        private System.Windows.Forms.DataGridViewTextBoxColumn curValAverage02;
-        private System.Windows.Forms.DataGridViewTextBoxColumn upperLimit02;
-        private System.Windows.Forms.DataGridViewTextBoxColumn lowerLimit02;
+        private System.Windows.Forms.DataGridViewTextBoxColumn timer;
+        private System.Windows.Forms.DataGridViewTextBoxColumn smoothCur;
+        private System.Windows.Forms.DataGridViewTextBoxColumn smoothAverage;
+        private System.Windows.Forms.DataGridViewTextBoxColumn smoothUpper;
+        private System.Windows.Forms.DataGridViewTextBoxColumn smoothLower;
+        private System.Windows.Forms.DataGridViewTextBoxColumn mutationCur;
+        private System.Windows.Forms.DataGridViewTextBoxColumn mutationAverage;
+        private System.Windows.Forms.DataGridViewTextBoxColumn mutationUpper;
+        private System.Windows.Forms.DataGridViewTextBoxColumn mutationLower;
     }
 }
 

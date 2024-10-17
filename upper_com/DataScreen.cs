@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -15,6 +16,8 @@ namespace upper_com
         public DataDetection()
         {
             InitializeComponent();
+            // 程序启动时加载数据
+            ReadCurrentData();
         }
 
         private void label1_Click(object sender, EventArgs e)
@@ -430,6 +433,47 @@ namespace upper_com
 
         }
 
+        public void ReadCurrentData()
+        {
+            String connetStr = "server=127.0.0.1;port=3306;user=root;password=Amecho00#; database=upper_com;";
+            MySqlConnection conn = new MySqlConnection(connetStr);
+            try
+            {
+                // 打开通道，建立连接，可能出现异常,使用try catch语句
+                conn.Open();
+                // Console.WriteLine("已经建立连接");
+                // 在这里使用代码对数据库进行增删查改
+                string sql = "select * from current_data ";
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                // 执行 ExecuteReader() 返回一个 MySqlDataReader 对象
+                MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    
+                    int index = this.dataGridView1.Rows.Add();
 
+                    this.dataGridView1.Rows[index].Cells[0].Value = reader.GetInt32("serial_no");
+                    this.dataGridView1.Rows[index].Cells[1].Value = reader.GetString("timer");
+
+                    this.dataGridView1.Rows[index].Cells[2].Value = reader.GetDouble("smooth_cur");
+                    this.dataGridView1.Rows[index].Cells[3].Value = reader.GetDouble("smooth_average");
+                    this.dataGridView1.Rows[index].Cells[4].Value = reader.GetDouble("smooth_upper");
+                    this.dataGridView1.Rows[index].Cells[5].Value = reader.GetDouble("smooth_lower");
+
+                    this.dataGridView1.Rows[index].Cells[6].Value = reader.GetDouble("mutation_cur");
+                    this.dataGridView1.Rows[index].Cells[7].Value = reader.GetDouble("mutation_average");
+                    this.dataGridView1.Rows[index].Cells[8].Value = reader.GetDouble("mutation_upper");
+                    this.dataGridView1.Rows[index].Cells[9].Value = reader.GetDouble("mutation_lower");
+                }
+            }
+            catch (MySqlException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                conn.Close();
+            }
+        }
     }
 }
