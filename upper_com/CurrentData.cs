@@ -21,14 +21,18 @@ namespace upper_com
         private double mutationUpper;
         private double mutationLower;
 
+        // 创建时间
+        private DateTime createTime;
+
         public CurrentData()
         {
 
         }
 
-        public CurrentData(int serialNo, string timer, double smoothCur, double smoothAverage, double smoothUpper, double smoothLower, double mutationCur, double mutationAverage, double mutationUpper, double mutationLower)
+        public CurrentData(string timer, double smoothCur, double smoothAverage, 
+            double smoothUpper, double smoothLower, double mutationCur, 
+            double mutationAverage, double mutationUpper, double mutationLower, DateTime createTime)
         {
-            this.serialNo = serialNo;
             this.timer = timer;
             this.smoothCur = smoothCur;
             this.smoothAverage = smoothAverage;
@@ -38,6 +42,17 @@ namespace upper_com
             this.mutationAverage = mutationAverage;
             this.mutationUpper = mutationUpper;
             this.mutationLower = mutationLower;
+            this.createTime = createTime;
+        }
+
+        public void SetCreateTime(DateTime createTime)
+        {
+            this.createTime = createTime;
+        }
+
+        public DateTime GetCreateTime()
+        {
+            return this.createTime;
         }
 
         public int GetSerialNo() { return serialNo; }

@@ -8,31 +8,101 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using System.Drawing;
 
 namespace upper_com
 {
     public partial class DataDetection : Form
     {
+        float X;
+        float Y;
+
         public DataDetection()
         {
             InitializeComponent();
             // 程序启动时加载数据
-            ReadCurrentData();
-        }
+            //ReadCurrentData();
 
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label2_Click(object sender, EventArgs e)
-        {
+            #region 控件自适应窗口大小
+            this.Resize += new EventHandler(Form1_Resize);
+            X = this.Width;
+            Y = this.Height;
+            setTag(this);
+            #endregion
 
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
+        
 
+        private void setTag(Control cons)
+        {
+            foreach (Control con in cons.Controls)
+            {
+                con.Tag = con.Width + ":" + con.Height + ":" + con.Left + ":" + con.Top + ":" + con.Font.Size;
+                if (con.Controls.Count > 0)
+                    setTag(con);
+            }
+        }
+        private void setControls(float newx, float newy, Control cons)
+        {
+            foreach (Control con in cons.Controls)
+            {
+
+                string[] mytag = con.Tag.ToString().Split(new char[] { ':' });
+                float a = Convert.ToSingle(mytag[0]) * newx;
+                con.Width = (int)a;
+                a = Convert.ToSingle(mytag[1]) * newy;
+                con.Height = (int)(a);
+                a = Convert.ToSingle(mytag[2]) * newx;
+                con.Left = (int)(a);
+                a = Convert.ToSingle(mytag[3]) * newy;
+                con.Top = (int)(a);
+                Single currentSize = Convert.ToSingle(mytag[4]) * newy;
+                con.Font = new Font(con.Font.Name, currentSize, con.Font.Style, con.Font.Unit);
+                if (con.Controls.Count > 0)
+                {
+                    setControls(newx, newy, con);
+                }
+            }
+
+        }
+
+        void Form1_Resize(object sender, EventArgs e)
+        {
+            // throw new Exception("The method or operation is not implemented.");
+            float newx = (this.Width) / X;
+            //  float newy = (this.Height - this.statusStrip1.Height) / (Y - y);
+            float newy = this.Height / Y;
+            setControls(newx, newy, this);
+            this.Text = this.Width.ToString() + " " + this.Height.ToString();
+
+        }
+
+        private void btnStartClick(object sender, EventArgs e)
+        {
+            // 1. 参数校验
+            invalidateParams();
+
+            // warningMsg.Text = "Hello World!";
+
+            // 2. TODO 数据监听并处理
+            this.listenerHandler();
+        }
+
+        private void btnEndClick(object sender, EventArgs e)
+        {
+            // MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
+            //dataFilling();
+            ExcelExportUtils.ExportToExcel(this.dataGridView1);
+            // this.myLED1.LedStatus = true; // 告警
+            //或者this.myLED1.LedStatus = false;
+
+        }
+
+        private string ReturnSelectSql(int pageSize, int totalCount)
+        {
+            return "select serial_no, timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper,mutation_lower " +
+                "from current_data limit " + totalCount + ", " + pageSize;
         }
 
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
@@ -40,10 +110,16 @@ namespace upper_com
 
         }
 
-        private void label1_Click_1(object sender, EventArgs e)
+        private void k_label_Click(object sender, EventArgs e)
         {
 
         }
+
+        private void k_value_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
 
         // 负责监听客户端的线程
         Thread threadWatch = null;
@@ -74,7 +150,7 @@ namespace upper_com
                 // 启动线程
                 threadWatch.Start();
                 // 启动线程后 warningMsg 显示相应提示
-                warningMsg.Text = "开始监听并处理数据！！！！！!" + "\r\n";
+                // warningMsg.Text = "开始监听并处理数据！！！！！!" + "\r\n";
                 this.startBtn.Enabled = false;
             }
             catch (Exception ex)
@@ -84,7 +160,7 @@ namespace upper_com
             }
         }
 
-        //创建一个负责和客户端通信的套接字 
+        // 创建一个负责和客户端通信的套接字 
         Socket socConnection = null;
 
         /**
@@ -96,6 +172,12 @@ namespace upper_com
             // 持续不断监听客户端发来的请求
             while (true)
             {
+                // PLC 起始信号
+                /*if ()
+                {
+
+                }*/
+
                 // 一旦监听到一个客户端的连接，将会创建一个与该客户端连接的套接字
                 socConnection = socketWatch.Accept();
                 // txtMsg.AppendText("客户端连接成功! " + "\r\n");
@@ -127,7 +209,6 @@ namespace upper_com
                 //List<double> curren_2 = new List<double>();
 
                 int length = -1;
-
                 try
                 {
                     // TODO 将返回的数据进行计算处理
@@ -145,14 +226,14 @@ namespace upper_com
                     // 接受客户端数据
                     length = socketServer.Receive(arrServerRecMsg);
                     string clientMsg = AnalyticData(arrServerRecMsg, length);
-                    Console.WriteLine(GetCurrentTime()+ ": 接受到客户端数据：" + clientMsg);
+                    Console.WriteLine(GetCurrentTime() + ": 接受到客户端数据：" + clientMsg);
                     // 发送数据
                     string sendMsg = "服务端返回信息:" + clientMsg;
                     socketServer.Send(PackData(sendMsg));
 
                     //Console.WriteLine("=======泵不住啦！！！！！！！！" + length);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     string str = socketServer.RemoteEndPoint.ToString();
                     Console.WriteLine("泵不住啦！！！！！！！！");
@@ -262,7 +343,6 @@ namespace upper_com
             return Encoding.UTF8.GetString(payload_data);
         }
 
-
         // 计算平均值
         private double curAverageCalculator(List<double> numbers)
         {
@@ -308,17 +388,6 @@ namespace upper_com
             return currentTime;
         }
 
-        private void btnStartClick(object sender, EventArgs e)
-        {
-            // 1. 参数校验
-            invalidateParams();
-
-            // warningMsg.Text = "Hello World!";
-
-            // 2. TODO 数据监听并处理
-            this.listenerHandler();
-        }
-
         /// <summary>
         /// 参数校验
         /// </summary>
@@ -331,7 +400,7 @@ namespace upper_com
                 || !int.TryParse(kVal, out _)
                 || int.Parse(kVal) <= 0)
             {
-                MessageBox.Show("k值输入错误，请输入大于0的十进制有效数字！");
+                MessageBox.Show("k 值输入错误，请输入大于 0 的十进制有效数字！");
             }
             if (string.IsNullOrEmpty(nVal)
                 || !int.TryParse(nVal, out _)
@@ -342,64 +411,16 @@ namespace upper_com
         }
 
         /// <summary>
-        /// IP 校验接口
-        /// </summary>
-        /// <returns>IP是否合法：true-合法；false-不合法</returns>
-        // 
-        public bool IsValidIPAddress(string ipAddress)
-        {
-            return IPAddress.TryParse(ipAddress, out _);
-        }
-        
-        /// <summary>
-        /// 端口号校验接口
-        /// </summary>
-        /// <returns>端口是否合法</returns>
-        // 
-        public bool IsValidPort(string portString)
-        {
-            if (int.TryParse(portString, out int port))
-            {
-                return port >= 0 && port <= 65535;
-            }
-            return false;
-        }
-
-        private void label1_Click_2(object sender, EventArgs e)
-        {
-
-        }
-
-        private void k_value_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label4_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void textBox2_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void btnEndClick(object sender, EventArgs e)
-        {
-            // MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
-            dataFilling();
-        }
-
-        /// <summary>
         /// TODO 数据填充
         /// </summary>
         /// <returns>TODO</returns>
         private void dataFilling()
         {
-            for(int i=0; i<100; i++)
+            for (int i = 0; i < 100; i++)
             {
-                AddItem(new CurrentData(i, i + "5", 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2));
+                CurrentData cur = new CurrentData(i + "5", 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, GetCurrentTime());
+                // AddItem(cur);
+                InsertData(cur);
             }
         }
 
@@ -433,6 +454,36 @@ namespace upper_com
 
         }
 
+        /**
+         * 往数据库中插入数据
+         */
+        private void InsertData(CurrentData cur)
+        {
+            // 创建连接字符串 con
+            String connetStr = "server=127.0.0.1;port=3306;user=root;password=Amecho00#; database=upper_com;";
+            MySqlConnection con = new MySqlConnection(connetStr);
+
+            // 打开数据库
+            string tablecmd = "USE upper_com";
+            MySqlCommand cmd = new MySqlCommand(tablecmd, con);
+            con.Open();
+            int res = cmd.ExecuteNonQuery();
+
+            // INSERT INTO current_data (timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper, mutation_lower)
+            // VALUES('hhhhhhhhh', 3, 4, 5, 3.4, 55.3, 34.5, 34.5, 3.45);
+            string sql = "INSERT INTO current_data " +
+                "(timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper, mutation_lower, create_time) VALUES("
+                + "'" + cur.GetTimer() + "', " + cur.GetSmoothCur() + ", " + cur.GetSmoothAverage() + ", " + cur.GetSmoothUpper()
+                + ", " + cur.GetSmoothLower() + ", " + cur.GetMutationCur() + ", " + cur.GetMutationAverage() + ", " + cur.GetMutationUpper()
+                 + ", " + cur.GetMutationLower() + ", '" + cur.GetCreateTime() + "');";
+
+            MySqlCommand cmd1 = new MySqlCommand(sql, con);
+
+            int res1 = cmd1.ExecuteNonQuery();
+
+            con.Close();
+        }
+
         public void ReadCurrentData()
         {
             String connetStr = "server=127.0.0.1;port=3306;user=root;password=Amecho00#; database=upper_com;";
@@ -443,15 +494,13 @@ namespace upper_com
                 conn.Open();
                 // Console.WriteLine("已经建立连接");
                 // 在这里使用代码对数据库进行增删查改
-                string sql = "select * from current_data ";
+                string sql = ReturnSelectSql(30,0);
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 // 执行 ExecuteReader() 返回一个 MySqlDataReader 对象
                 MySqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
-                    
                     int index = this.dataGridView1.Rows.Add();
-
                     this.dataGridView1.Rows[index].Cells[0].Value = reader.GetInt32("serial_no");
                     this.dataGridView1.Rows[index].Cells[1].Value = reader.GetString("timer");
 
@@ -474,6 +523,21 @@ namespace upper_com
             {
                 conn.Close();
             }
+        }
+
+        private void myLED1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void myLED2_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void myLED3_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }

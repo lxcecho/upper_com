@@ -93,37 +93,6 @@ namespace upper_com
             con.Close();
         }
 
-        /**
-         * 往数据库中插入数据
-         */
-        public static void InsertData(string dbSource, string username,
-            string passwd, string dbName, CurrentData cur)
-        {
-            // 创建连接字符串 con
-            MySqlConnection con = new MySqlConnection("Data Source=" + dbSource
-                + ";Persist Security Info=yes;UserId=" + username + "; PWD=" + passwd + ";");
-
-            // 打开数据库
-            string tablecmd = "USE " + dbName + ";";
-            MySqlCommand cmd = new MySqlCommand(tablecmd, con);
-            con.Open();
-            int res = cmd.ExecuteNonQuery();
-
-            // INSERT INTO current_data (timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper, mutation_lower)
-            // VALUES('hhhhhhhhh', 3, 4, 5, 3.4, 55.3, 34.5, 34.5, 3.45);
-            string sql = "INSERT INTO current_data " +
-                "(timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper, mutation_lower) VALUES("
-                + "'" + cur.GetTimer() + "', " + cur.GetSmoothCur() + "', " + cur.GetSmoothAverage() + "', " + cur.GetSmoothUpper()
-                + "', " + cur.GetSmoothLower() + "', " + cur.GetMutationCur() + "', " + cur.GetMutationAverage() + "', " + cur.GetMutationUpper()
-                 + "', " + cur.GetMutationLower() + ");";
-
-            MySqlCommand cmd1 = new MySqlCommand(sql, con);
-
-            int res1 = cmd1.ExecuteNonQuery();
-
-            con.Close();
-        }
-
         public static void ReadDatatable(string dbSource, string dbUid,
             string dbPwd, string dbName, string tbName, DataGridView dataGrid)
         {
