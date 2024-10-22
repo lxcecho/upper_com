@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -9,6 +8,10 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using System.Drawing;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace upper_com
 {
@@ -17,11 +20,17 @@ namespace upper_com
         float X;
         float Y;
 
+        #region 数据定时刷新
+        private FileSystemWatcher fileWatcher;
+        string filePath = @"D:\" + DateTime.Now.ToString("yyyy-MM-dd") + ".xlsx";
+        private readonly object fileLock = new object();
+        #endregion
+
+        private System.Windows.Forms.Timer dataChangeTimer;
+
         public DataDetection()
         {
             InitializeComponent();
-            // 程序启动时加载数据
-            //ReadCurrentData();
 
             #region 控件自适应窗口大小
             this.Resize += new EventHandler(Form1_Resize);
@@ -30,10 +39,198 @@ namespace upper_com
             setTag(this);
             #endregion
 
+            // 程序启动时加载数据
+            LoadLatestDataToDataGridView();
+
+            fileWatcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(filePath),
+                Filter = Path.GetFileName(filePath),
+                NotifyFilter = NotifyFilters.LastWrite
+            };
+            fileWatcher.Changed += OnFileChanged;
+            fileWatcher.EnableRaisingEvents = true;
+
+            // 定时器模拟数据变更
+            /*dataChangeTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 10000 // 每10秒模拟一次数据变更
+            };
+            dataChangeTimer.Tick += (s, e) => CheckForDataChanges();
+            dataChangeTimer.Start();*/
         }
 
-        
+        private void OnFileChanged(object sender, FileSystemEventArgs e)
+        {
+            // 确保文件写入完成后再读取
+            System.Threading.Thread.Sleep(100);
+            LoadLatestDataToDataGridView();
+        }
 
+        // 模拟数据变更
+        private void CheckForDataChanges()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                CurrentData cur = new CurrentData(i, DateTime.Now.ToString(), 0.2, 3.02, 3.62, 73.2, 93.2, 113.2, 763.2, 103.2);
+                UpdateData(cur);
+
+            }
+
+        }
+
+        private void LoadLatestDataToDataGridView()
+        {
+            lock (fileLock)
+            {
+                if (this.dataGridView1.InvokeRequired)
+                {
+                    this.dataGridView1.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateDataGridView();
+                    });
+                }
+                else
+                {
+                    UpdateDataGridView();
+                }
+            }
+        }
+
+        private void UpdateDataGridView()
+        {
+            // 清除现有数据
+            this.dataGridView1.Rows.Clear();
+
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show("文件不存在，显示为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    IWorkbook workbook = new XSSFWorkbook(fs);
+                    ISheet sheet = workbook.GetSheetAt(0);
+
+                    // 读取最新的15条数据
+                    int startRow = Math.Max(1, sheet.LastRowNum - 14);
+                    for (int i = startRow; i <= sheet.LastRowNum; i++)
+                    {
+                        IRow row = sheet.GetRow(i);
+                        object[] rowData = new object[row.LastCellNum];
+                        for (int j = 0; j < row.LastCellNum; j++)
+                        {
+                            rowData[j] = row.GetCell(j)?.ToString();
+                        }
+                        this.dataGridView1.Rows.Add(rowData);
+                    }
+                }
+            }
+            catch (IOException ex)
+            {
+                MessageBox.Show($"文件访问错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private async void UpdateData(CurrentData currentData)
+        {
+            if (this.dataGridView1.InvokeRequired)
+            {
+                // 先更新DataGridView
+                this.dataGridView1.Invoke((MethodInvoker)delegate
+                {
+                    AddDataToGridView(currentData);
+                });
+            } else
+            {
+                AddDataToGridView(currentData);
+            }
+
+            // 异步写入文件
+            await Task.Run(() => WriteDataToFile(currentData));
+        }
+
+        private void AddDataToGridView(CurrentData currentData)
+        {
+            // 更新 DataGridView
+            this.dataGridView1.Rows.Add(currentData.GetSerialNo(), currentData.GetCurDate(), currentData.GetSmoothCur(), currentData.GetSmoothAverage(),
+                currentData.GetSmoothUpper(), currentData.GetSmoothLower(), currentData.GetMutationCur(), currentData.GetMutationAverage(),
+                currentData.GetMutationUpper(), currentData.GetMutationLower());
+            if (this.dataGridView1.Rows.Count > 15)
+            {
+                this.dataGridView1.Rows.RemoveAt(0);
+            }
+        }
+
+        private void WriteDataToFile(CurrentData currentData)
+        {
+            lock (fileLock)
+            {
+                try
+                {
+                    IWorkbook workbook;
+                    ISheet sheet;
+
+                    if (!File.Exists(filePath))
+                    {
+                        workbook = new XSSFWorkbook();
+                        sheet = workbook.CreateSheet("Sheet1");
+
+                        // 写入标题行
+                        IRow headerRow = sheet.CreateRow(0);
+                        headerRow.CreateCell(0).SetCellValue("序号");
+                        headerRow.CreateCell(1).SetCellValue("时间");
+                        headerRow.CreateCell(2).SetCellValue("电流I1");
+                        headerRow.CreateCell(3).SetCellValue("I1均值");
+                        headerRow.CreateCell(4).SetCellValue("I1上限");
+                        headerRow.CreateCell(5).SetCellValue("I1下限");
+                        headerRow.CreateCell(6).SetCellValue("电流I2");
+                        headerRow.CreateCell(7).SetCellValue("I2均值");
+                        headerRow.CreateCell(8).SetCellValue("I2上限");
+                        headerRow.CreateCell(9).SetCellValue("I2下限");
+                    }
+                    else
+                    {
+                        // 打开现有文件并追加数据
+                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            workbook = new XSSFWorkbook(fs);
+                            sheet = workbook.GetSheetAt(0);
+                        }
+                    }
+
+                    // 找到最后一行
+                    int lastRowNum = sheet.LastRowNum;
+                    IRow newRow = sheet.CreateRow(lastRowNum + 1);
+                    // 追加数据
+                    newRow.CreateCell(0).SetCellValue(currentData.GetSerialNo());
+                    newRow.CreateCell(1).SetCellValue(currentData.GetCurDate());
+                    newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
+                    newRow.CreateCell(3).SetCellValue(currentData.GetSmoothAverage());
+                    newRow.CreateCell(4).SetCellValue(currentData.GetSmoothUpper());
+                    newRow.CreateCell(5).SetCellValue(currentData.GetSmoothLower());
+                    newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
+                    newRow.CreateCell(7).SetCellValue(currentData.GetMutationAverage());
+                    newRow.CreateCell(8).SetCellValue(currentData.GetMutationUpper());
+                    newRow.CreateCell(9).SetCellValue(currentData.GetMutationLower());
+
+                    // 写入文件
+                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                    {
+                        workbook.Write(fs);
+                    }
+                }
+                catch (IOException ex)
+                {
+                    MessageBox.Show($"文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        #region 控件自适应窗口大小
         private void setTag(Control cons)
         {
             foreach (Control con in cons.Controls)
@@ -43,11 +240,11 @@ namespace upper_com
                     setTag(con);
             }
         }
+
         private void setControls(float newx, float newy, Control cons)
         {
             foreach (Control con in cons.Controls)
             {
-
                 string[] mytag = con.Tag.ToString().Split(new char[] { ':' });
                 float a = Convert.ToSingle(mytag[0]) * newx;
                 con.Width = (int)a;
@@ -64,7 +261,6 @@ namespace upper_com
                     setControls(newx, newy, con);
                 }
             }
-
         }
 
         void Form1_Resize(object sender, EventArgs e)
@@ -75,8 +271,10 @@ namespace upper_com
             float newy = this.Height / Y;
             setControls(newx, newy, this);
             this.Text = this.Width.ToString() + " " + this.Height.ToString();
-
         }
+        #endregion
+
+
 
         private void btnStartClick(object sender, EventArgs e)
         {
@@ -93,16 +291,10 @@ namespace upper_com
         {
             // MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
             //dataFilling();
-            ExcelExportUtils.ExportToExcel(this.dataGridView1);
+            //ExcelExportUtils.ExportToExcel(this.dataGridView1);
             // this.myLED1.LedStatus = true; // 告警
             //或者this.myLED1.LedStatus = false;
 
-        }
-
-        private string ReturnSelectSql(int pageSize, int totalCount)
-        {
-            return "select serial_no, timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper,mutation_lower " +
-                "from current_data limit " + totalCount + ", " + pageSize;
         }
 
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
@@ -411,20 +603,6 @@ namespace upper_com
         }
 
         /// <summary>
-        /// TODO 数据填充
-        /// </summary>
-        /// <returns>TODO</returns>
-        private void dataFilling()
-        {
-            for (int i = 0; i < 100; i++)
-            {
-                CurrentData cur = new CurrentData(i + "5", 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, 3.2, GetCurrentTime());
-                // AddItem(cur);
-                InsertData(cur);
-            }
-        }
-
-        /// <summary>
         /// TODO 行填充
         /// </summary>
         /// <returns>TODO</returns>
@@ -437,7 +615,7 @@ namespace upper_com
                 dgvr.Cells.Add(c.CellTemplate.Clone() as DataGridViewCell);
             }
             dgvr.Cells[0].Value = currentData.GetSerialNo();
-            dgvr.Cells[1].Value = currentData.GetTimer();
+            dgvr.Cells[1].Value = currentData.GetCurDate();
             dgvr.Cells[2].Value = currentData.GetSmoothCur();
             dgvr.Cells[3].Value = currentData.GetSmoothAverage();
             dgvr.Cells[4].Value = currentData.GetSmoothUpper();
@@ -450,92 +628,6 @@ namespace upper_com
         }
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-
-        }
-
-        /**
-         * 往数据库中插入数据
-         */
-        private void InsertData(CurrentData cur)
-        {
-            // 创建连接字符串 con
-            String connetStr = "server=127.0.0.1;port=3306;user=root;password=Amecho00#; database=upper_com;";
-            MySqlConnection con = new MySqlConnection(connetStr);
-
-            // 打开数据库
-            string tablecmd = "USE upper_com";
-            MySqlCommand cmd = new MySqlCommand(tablecmd, con);
-            con.Open();
-            int res = cmd.ExecuteNonQuery();
-
-            // INSERT INTO current_data (timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper, mutation_lower)
-            // VALUES('hhhhhhhhh', 3, 4, 5, 3.4, 55.3, 34.5, 34.5, 3.45);
-            string sql = "INSERT INTO current_data " +
-                "(timer, smooth_cur, smooth_average, smooth_upper, smooth_lower, mutation_cur, mutation_average, mutation_upper, mutation_lower, create_time) VALUES("
-                + "'" + cur.GetTimer() + "', " + cur.GetSmoothCur() + ", " + cur.GetSmoothAverage() + ", " + cur.GetSmoothUpper()
-                + ", " + cur.GetSmoothLower() + ", " + cur.GetMutationCur() + ", " + cur.GetMutationAverage() + ", " + cur.GetMutationUpper()
-                 + ", " + cur.GetMutationLower() + ", '" + cur.GetCreateTime() + "');";
-
-            MySqlCommand cmd1 = new MySqlCommand(sql, con);
-
-            int res1 = cmd1.ExecuteNonQuery();
-
-            con.Close();
-        }
-
-        public void ReadCurrentData()
-        {
-            String connetStr = "server=127.0.0.1;port=3306;user=root;password=Amecho00#; database=upper_com;";
-            MySqlConnection conn = new MySqlConnection(connetStr);
-            try
-            {
-                // 打开通道，建立连接，可能出现异常,使用try catch语句
-                conn.Open();
-                // Console.WriteLine("已经建立连接");
-                // 在这里使用代码对数据库进行增删查改
-                string sql = ReturnSelectSql(30,0);
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                // 执行 ExecuteReader() 返回一个 MySqlDataReader 对象
-                MySqlDataReader reader = cmd.ExecuteReader();
-                while (reader.Read())
-                {
-                    int index = this.dataGridView1.Rows.Add();
-                    this.dataGridView1.Rows[index].Cells[0].Value = reader.GetInt32("serial_no");
-                    this.dataGridView1.Rows[index].Cells[1].Value = reader.GetString("timer");
-
-                    this.dataGridView1.Rows[index].Cells[2].Value = reader.GetDouble("smooth_cur");
-                    this.dataGridView1.Rows[index].Cells[3].Value = reader.GetDouble("smooth_average");
-                    this.dataGridView1.Rows[index].Cells[4].Value = reader.GetDouble("smooth_upper");
-                    this.dataGridView1.Rows[index].Cells[5].Value = reader.GetDouble("smooth_lower");
-
-                    this.dataGridView1.Rows[index].Cells[6].Value = reader.GetDouble("mutation_cur");
-                    this.dataGridView1.Rows[index].Cells[7].Value = reader.GetDouble("mutation_average");
-                    this.dataGridView1.Rows[index].Cells[8].Value = reader.GetDouble("mutation_upper");
-                    this.dataGridView1.Rows[index].Cells[9].Value = reader.GetDouble("mutation_lower");
-                }
-            }
-            catch (MySqlException ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }
-
-        private void myLED1_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void myLED2_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void myLED3_Load(object sender, EventArgs e)
         {
 
         }

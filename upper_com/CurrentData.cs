@@ -9,7 +9,7 @@ namespace upper_com
     class CurrentData
     {
         private int serialNo;
-        private string timer;
+        private string curDate;
         // =========平稳段==============
         private double smoothCur;
         private double smoothAverage;
@@ -21,19 +21,17 @@ namespace upper_com
         private double mutationUpper;
         private double mutationLower;
 
-        // 创建时间
-        private DateTime createTime;
-
         public CurrentData()
         {
 
         }
 
-        public CurrentData(string timer, double smoothCur, double smoothAverage, 
-            double smoothUpper, double smoothLower, double mutationCur, 
-            double mutationAverage, double mutationUpper, double mutationLower, DateTime createTime)
+        public CurrentData(int serialNo, string curDate, double smoothCur, double smoothAverage,
+            double smoothUpper, double smoothLower, double mutationCur,
+            double mutationAverage, double mutationUpper, double mutationLower)
         {
-            this.timer = timer;
+            this.serialNo = serialNo;
+            this.curDate = curDate;
             this.smoothCur = smoothCur;
             this.smoothAverage = smoothAverage;
             this.smoothUpper = smoothUpper;
@@ -42,21 +40,10 @@ namespace upper_com
             this.mutationAverage = mutationAverage;
             this.mutationUpper = mutationUpper;
             this.mutationLower = mutationLower;
-            this.createTime = createTime;
-        }
-
-        public void SetCreateTime(DateTime createTime)
-        {
-            this.createTime = createTime;
-        }
-
-        public DateTime GetCreateTime()
-        {
-            return this.createTime;
         }
 
         public int GetSerialNo() { return serialNo; }
-        public string GetTimer() { return timer; }
+        public string GetCurDate() { return curDate; }
 
         public double GetSmoothCur()
         {
@@ -97,7 +84,7 @@ namespace upper_com
         {
             this.serialNo = serialNo;
         }
-        public void SetTimer(string timer) { this.timer = timer; }
+        public void SetCurDate(string curDate) { this.curDate = curDate; }
 
         public void SetSmoothCur(double smoothCur)
         {

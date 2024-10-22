@@ -43,6 +43,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Name = "MyLED";
+            this.Load += new System.EventHandler(this.MyLED_Load);
             this.ResumeLayout(false);
 
         }

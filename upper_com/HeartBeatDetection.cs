@@ -13,7 +13,7 @@ namespace upper_com
 {
     internal class HeartBeatDetection
     {
-
+        // 如果所有连接都完成了，就将 LED 置成绿色图标
         public async Task PlcConn()
         {
             // 创建 PLC 连接对象，这里以西门子 S7-1200 为例

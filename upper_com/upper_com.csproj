@@ -178,8 +178,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConnectClass.cs" />
-    <Compile Include="ExcelExportUtils.cs" />
+    <Compile Include="ExcelUtils.cs" />
     <Compile Include="DataQueue.cs" />
     <Compile Include="DataSourceManagement.cs" />
     <Compile Include="CurrentData.cs" />

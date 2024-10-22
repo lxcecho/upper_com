@@ -258,7 +258,7 @@ namespace upper_com
             Color color = ledStatus ? ledTrueColor : ledFalseColor;
             if (isFlash)
             {
-                lampColor = new Color[] { color, Color.Yellow };
+                lampColor = new Color[] { color, Color.Gray };
                 color = lampColor[intColorIndex];
             }
 
@@ -309,5 +309,10 @@ namespace upper_com
         }
 
         #endregion
+
+        private void MyLED_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

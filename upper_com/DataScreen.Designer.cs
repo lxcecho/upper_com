@@ -32,6 +32,7 @@ namespace upper_com
         {
             this.splitter1 = new System.Windows.Forms.Splitter();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
+            this.myLED1 = new upper_com.MyLED();
             this.btnEnd = new System.Windows.Forms.Button();
             this.startBtn = new System.Windows.Forms.Button();
             this.n_value = new System.Windows.Forms.TextBox();
@@ -40,7 +41,7 @@ namespace upper_com
             this.kLabel = new System.Windows.Forms.Label();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.serialNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.timer = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.curDate = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.smoothCur = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.smoothAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.smoothUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -73,6 +74,7 @@ namespace upper_com
             // 
             // splitContainer1.Panel1
             // 
+            this.splitContainer1.Panel1.Controls.Add(this.myLED1);
             this.splitContainer1.Panel1.Controls.Add(this.btnEnd);
             this.splitContainer1.Panel1.Controls.Add(this.startBtn);
             this.splitContainer1.Panel1.Controls.Add(this.n_value);
@@ -88,6 +90,27 @@ namespace upper_com
             this.splitContainer1.Size = new System.Drawing.Size(1674, 729);
             this.splitContainer1.SplitterDistance = 195;
             this.splitContainer1.TabIndex = 6;
+            // 
+            // myLED1
+            // 
+            this.myLED1.BorderWidth = 5;
+            this.myLED1.CenterColor = System.Drawing.Color.White;
+            this.myLED1.FlashInterval = 500;
+            this.myLED1.GapWidth = 5;
+            this.myLED1.IsBorder = true;
+            this.myLED1.IsFlash = true;
+            this.myLED1.IsHighLight = true;
+            this.myLED1.LampColor = new System.Drawing.Color[] {
+        System.Drawing.Color.Green,
+        System.Drawing.Color.Gray};
+            this.myLED1.LedColor = System.Drawing.Color.Green;
+            this.myLED1.LedFalseColor = System.Drawing.Color.Red;
+            this.myLED1.LedStatus = true;
+            this.myLED1.LedTrueColor = System.Drawing.Color.Green;
+            this.myLED1.Location = new System.Drawing.Point(24, 48);
+            this.myLED1.Name = "myLED1";
+            this.myLED1.Size = new System.Drawing.Size(79, 85);
+            this.myLED1.TabIndex = 13;
             // 
             // btnEnd
             // 
@@ -122,7 +145,7 @@ namespace upper_com
             // n_value
             // 
             this.n_value.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.n_value.Location = new System.Drawing.Point(319, 67);
+            this.n_value.Location = new System.Drawing.Point(256, 79);
             this.n_value.Margin = new System.Windows.Forms.Padding(4);
             this.n_value.Name = "n_value";
             this.n_value.Size = new System.Drawing.Size(52, 18);
@@ -132,7 +155,7 @@ namespace upper_com
             // k_value
             // 
             this.k_value.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.k_value.Location = new System.Drawing.Point(319, 17);
+            this.k_value.Location = new System.Drawing.Point(256, 29);
             this.k_value.Margin = new System.Windows.Forms.Padding(4);
             this.k_value.Name = "k_value";
             this.k_value.Size = new System.Drawing.Size(52, 18);
@@ -144,7 +167,7 @@ namespace upper_com
             // 
             this.nLabel.AutoSize = true;
             this.nLabel.Font = new System.Drawing.Font("SimSun", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.nLabel.Location = new System.Drawing.Point(229, 70);
+            this.nLabel.Location = new System.Drawing.Point(166, 82);
             this.nLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.nLabel.Name = "nLabel";
             this.nLabel.Size = new System.Drawing.Size(53, 18);
@@ -155,7 +178,7 @@ namespace upper_com
             // 
             this.kLabel.AutoSize = true;
             this.kLabel.Font = new System.Drawing.Font("SimSun", 10.5F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.kLabel.Location = new System.Drawing.Point(229, 20);
+            this.kLabel.Location = new System.Drawing.Point(166, 32);
             this.kLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.kLabel.Name = "kLabel";
             this.kLabel.Size = new System.Drawing.Size(53, 18);
@@ -169,7 +192,7 @@ namespace upper_com
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView1.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.serialNo,
-            this.timer,
+            this.curDate,
             this.smoothCur,
             this.smoothAverage,
             this.smoothUpper,
@@ -196,12 +219,12 @@ namespace upper_com
             this.serialNo.MinimumWidth = 6;
             this.serialNo.Name = "serialNo";
             // 
-            // timer
+            // curDate
             // 
-            this.timer.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.timer.HeaderText = "时间";
-            this.timer.MinimumWidth = 6;
-            this.timer.Name = "timer";
+            this.curDate.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.curDate.HeaderText = "时间";
+            this.curDate.MinimumWidth = 6;
+            this.curDate.Name = "curDate";
             // 
             // smoothCur
             // 
@@ -287,10 +310,11 @@ namespace upper_com
         private System.Windows.Forms.TextBox n_value;
         private System.Windows.Forms.TextBox k_value;
         private System.Windows.Forms.DataGridView dataGridView1;
-        private System.Windows.Forms.Button btnEnd;
         private System.Windows.Forms.Button startBtn;
+        private MyLED myLED1;
+        private System.Windows.Forms.Button btnEnd;
         private System.Windows.Forms.DataGridViewTextBoxColumn serialNo;
-        private System.Windows.Forms.DataGridViewTextBoxColumn timer;
+        private System.Windows.Forms.DataGridViewTextBoxColumn curDate;
         private System.Windows.Forms.DataGridViewTextBoxColumn smoothCur;
         private System.Windows.Forms.DataGridViewTextBoxColumn smoothAverage;
         private System.Windows.Forms.DataGridViewTextBoxColumn smoothUpper;
