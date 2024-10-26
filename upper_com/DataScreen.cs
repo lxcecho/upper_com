@@ -23,7 +23,8 @@ namespace upper_com
         #region 数据定时刷新
         private FileSystemWatcher fileWatcher;
         string filePath = @"D:\" + DateTime.Now.ToString("yyyy-MM-dd") + ".xlsx";
-        private readonly object fileLock = new object();
+        private readonly object currentFileLock = new object();
+        private readonly object voltageFileLock = new object();
         #endregion
 
         private System.Windows.Forms.Timer dataChangeTimer;
@@ -40,8 +41,26 @@ namespace upper_com
             #endregion
 
             // 程序启动时加载数据
-            LoadLatestDataToDataGridView();
+            LoadData();
 
+            InitializeFileWatcher();
+
+            // 定时器模拟数据变更
+            // InitializeDataChangeTimer();
+        }
+
+        private void InitializeDataChangeTimer()
+        {
+            dataChangeTimer = new System.Windows.Forms.Timer
+            {
+                Interval = 10000 // 每10秒模拟一次数据变更
+            };
+            dataChangeTimer.Tick += (s, e) => CheckForDataChanges();
+            dataChangeTimer.Start();
+        }
+
+        private void InitializeFileWatcher()
+        {
             fileWatcher = new FileSystemWatcher
             {
                 Path = Path.GetDirectoryName(filePath),
@@ -50,21 +69,18 @@ namespace upper_com
             };
             fileWatcher.Changed += OnFileChanged;
             fileWatcher.EnableRaisingEvents = true;
+        }
 
-            // 定时器模拟数据变更
-            /*dataChangeTimer = new System.Windows.Forms.Timer
-            {
-                Interval = 10000 // 每10秒模拟一次数据变更
-            };
-            dataChangeTimer.Tick += (s, e) => CheckForDataChanges();
-            dataChangeTimer.Start();*/
+        private void LoadData()
+        {
+            LoadLatestCurrentDataToDataGridView();
+            LoadLatestVoltageDataToDataGridView();
         }
 
         private void OnFileChanged(object sender, FileSystemEventArgs e)
         {
             // 确保文件写入完成后再读取
-            System.Threading.Thread.Sleep(100);
-            LoadLatestDataToDataGridView();
+            Task.Delay(100).ContinueWith(_ => LoadData());
         }
 
         // 模拟数据变更
@@ -73,38 +89,93 @@ namespace upper_com
             for (int i = 0; i < 10; i++)
             {
                 CurrentData cur = new CurrentData(i, DateTime.Now.ToString(), 0.2, 3.02, 3.62, 73.2, 93.2, 113.2, 763.2, 103.2);
-                UpdateData(cur);
-
+                UpdateCurrentData(cur);
             }
 
         }
 
-        private void LoadLatestDataToDataGridView()
+        private void LoadLatestCurrentDataToDataGridView()
         {
-            lock (fileLock)
+            lock (currentFileLock)
             {
                 if (this.dataGridView1.InvokeRequired)
                 {
                     this.dataGridView1.Invoke((MethodInvoker)delegate
                     {
-                        UpdateDataGridView();
+                        UpdateCurrentDataGridView();
                     });
                 }
                 else
                 {
-                    UpdateDataGridView();
+                    UpdateCurrentDataGridView();
                 }
             }
         }
 
-        private void UpdateDataGridView()
+        private void LoadLatestVoltageDataToDataGridView()
+        {
+            lock (voltageFileLock)
+            {
+                if (this.dataGridView2.InvokeRequired)
+                {
+                    this.dataGridView2.Invoke((MethodInvoker)delegate
+                    {
+                        UpdateVoltageDataGridView();
+                    });
+                }
+                else
+                {
+                    UpdateVoltageDataGridView();
+                }
+            }
+        }
+
+        private void UpdateVoltageDataGridView()
+        {
+            // 清除现有数据
+            this.dataGridView2.Rows.Clear();
+
+            if (!File.Exists(filePath))
+            {
+                MessageBox.Show("当天记录文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                {
+                    IWorkbook workbook = new XSSFWorkbook(fs);
+                    ISheet sheet = workbook.GetSheetAt(0);
+
+                    // 读取最新的15条数据
+                    int startRow = Math.Max(1, sheet.LastRowNum - 14);
+                    for (int i = startRow; i <= sheet.LastRowNum; i++)
+                    {
+                        IRow row = sheet.GetRow(i);
+                        object[] rowData = new object[row.LastCellNum];
+                        for (int j = 0; j < row.LastCellNum; j++)
+                        {
+                            rowData[j] = row.GetCell(j)?.ToString();
+                        }
+                        this.dataGridView2.Rows.Add(rowData);
+                    }
+                }
+            }
+            catch (IOException ex)
+            {
+                MessageBox.Show($"文件访问错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void UpdateCurrentDataGridView()
         {
             // 清除现有数据
             this.dataGridView1.Rows.Clear();
 
             if (!File.Exists(filePath))
             {
-                MessageBox.Show("文件不存在，显示为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("当天记录文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -135,25 +206,110 @@ namespace upper_com
             }
         }
 
-        private async void UpdateData(CurrentData currentData)
+        private async void UpdateVoltagetData(VoltageData voltageData)
+        {
+            if (this.dataGridView2.InvokeRequired)
+            {
+                // 先更新DataGridView
+                this.dataGridView2.Invoke((MethodInvoker)delegate
+                {
+                    AddVoltageDataToGridView(voltageData);
+                });
+            }
+            else
+            {
+                AddVoltageDataToGridView(voltageData);
+            }
+
+            // 异步写入文件
+            await Task.Run(() => WriteVoltageDataToFile(voltageData));
+        }
+
+        private void AddVoltageDataToGridView(VoltageData voltageData)
+        {
+            // 更新 DataGridView
+            this.dataGridView1.Rows.Add(voltageData.GetCurrentNo(), voltageData.GetVoltageTransformSignal());
+            if (this.dataGridView2.Rows.Count > 15)
+            {
+                this.dataGridView2.Rows.RemoveAt(0);
+            }
+        }
+
+        private void WriteVoltageDataToFile(VoltageData voltageData)
+        {
+            lock (currentFileLock)
+            {
+                try
+                {
+                    IWorkbook workbook;
+                    ISheet sheet;
+
+                    if (!File.Exists(filePath))
+                    {
+                        workbook = new XSSFWorkbook();
+                        sheet = workbook.CreateSheet("Sheet1");
+
+                        // 写入标题行
+                        IRow headerRow = sheet.CreateRow(0);
+                        headerRow.CreateCell(0).SetCellValue("电流测试编号");
+                        headerRow.CreateCell(1).SetCellValue("压力传送信号");
+                        headerRow.CreateCell(2).SetCellValue("压力值V");
+                        headerRow.CreateCell(3).SetCellValue("压力均值");
+                        headerRow.CreateCell(4).SetCellValue("压力上限");
+                        headerRow.CreateCell(5).SetCellValue("压力下限");
+                    }
+                    else
+                    {
+                        // 打开现有文件并追加数据
+                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            workbook = new XSSFWorkbook(fs);
+                            sheet = workbook.GetSheetAt(0);
+                        }
+                    }
+
+                    // 找到最后一行
+                    int lastRowNum = sheet.LastRowNum;
+                    IRow newRow = sheet.CreateRow(lastRowNum + 1);
+                    // 追加数据
+                    newRow.CreateCell(0).SetCellValue(voltageData.GetCurrentNo());
+                    newRow.CreateCell(1).SetCellValue(voltageData.GetVoltageTransformSignal());
+                    //newRow.CreateCell(2).SetCellValue(voltageData.GetSmoothCur());
+                    //newRow.CreateCell(3).SetCellValue(voltageData.GetSmoothAverage());
+
+                    // 写入文件
+                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                    {
+                        workbook.Write(fs);
+                    }
+                }
+                catch (IOException ex)
+                {
+                    MessageBox.Show($"文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private async void UpdateCurrentData(CurrentData currentData)
         {
             if (this.dataGridView1.InvokeRequired)
             {
                 // 先更新DataGridView
                 this.dataGridView1.Invoke((MethodInvoker)delegate
                 {
-                    AddDataToGridView(currentData);
+                    AddCurrentDataToGridView(currentData);
                 });
-            } else
+            }
+            else
             {
-                AddDataToGridView(currentData);
+                AddCurrentDataToGridView(currentData);
             }
 
             // 异步写入文件
-            await Task.Run(() => WriteDataToFile(currentData));
+            await Task.Run(() => WriteCurrentDataToFile(currentData));
         }
 
-        private void AddDataToGridView(CurrentData currentData)
+        private void AddCurrentDataToGridView(CurrentData currentData)
         {
             // 更新 DataGridView
             this.dataGridView1.Rows.Add(currentData.GetSerialNo(), currentData.GetCurDate(), currentData.GetSmoothCur(), currentData.GetSmoothAverage(),
@@ -165,9 +321,9 @@ namespace upper_com
             }
         }
 
-        private void WriteDataToFile(CurrentData currentData)
+        private void WriteCurrentDataToFile(CurrentData currentData)
         {
-            lock (fileLock)
+            lock (currentFileLock)
             {
                 try
                 {
@@ -274,29 +430,6 @@ namespace upper_com
         }
         #endregion
 
-
-
-        private void btnStartClick(object sender, EventArgs e)
-        {
-            // 1. 参数校验
-            invalidateParams();
-
-            // warningMsg.Text = "Hello World!";
-
-            // 2. TODO 数据监听并处理
-            this.listenerHandler();
-        }
-
-        private void btnEndClick(object sender, EventArgs e)
-        {
-            // MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
-            //dataFilling();
-            //ExcelExportUtils.ExportToExcel(this.dataGridView1);
-            // this.myLED1.LedStatus = true; // 告警
-            //或者this.myLED1.LedStatus = false;
-
-        }
-
         private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
         {
 
@@ -343,7 +476,6 @@ namespace upper_com
                 threadWatch.Start();
                 // 启动线程后 warningMsg 显示相应提示
                 // warningMsg.Text = "开始监听并处理数据！！！！！!" + "\r\n";
-                this.startBtn.Enabled = false;
             }
             catch (Exception ex)
             {
@@ -628,6 +760,28 @@ namespace upper_com
         }
 
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+
+        }
+
+        private void myLED_Click(object sender, EventArgs e)
+        {
+            // 1. 参数校验
+            invalidateParams();
+
+            // warningMsg.Text = "Hello World!";
+
+            // 2. TODO 数据监听并处理
+            this.listenerHandler();
+
+            MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
+            //dataFilling();
+            //ExcelExportUtils.ExportToExcel(this.dataGridView1);
+            // this.myLED1.LedStatus = true; // 告警
+            //或者this.myLED1.LedStatus = false;
+        }
+
+        private void myLED1_Load(object sender, EventArgs e)
         {
 
         }

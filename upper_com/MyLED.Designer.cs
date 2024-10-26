@@ -28,15 +28,15 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.mySqlCommand1 = new MySql.Data.MySqlClient.MySqlCommand();
+            //this.mySqlCommand1 = new MySql.Data.MySqlClient.MySqlCommand();
             this.SuspendLayout();
             // 
             // mySqlCommand1
             // 
-            this.mySqlCommand1.CacheAge = 0;
-            this.mySqlCommand1.Connection = null;
-            this.mySqlCommand1.EnableCaching = false;
-            this.mySqlCommand1.Transaction = null;
+            //this.mySqlCommand1.CacheAge = 0;
+            //this.mySqlCommand1.Connection = null;
+            //this.mySqlCommand1.EnableCaching = false;
+            //this.mySqlCommand1.Transaction = null;
             // 
             // MyLED
             // 
@@ -50,6 +50,6 @@
 
         #endregion
 
-        private MySql.Data.MySqlClient.MySqlCommand mySqlCommand1;
+        //private MySql.Data.MySqlClient.MySqlCommand mySqlCommand1;
     }
 }

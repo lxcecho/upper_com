@@ -240,16 +240,42 @@ namespace upper_com
             }
         }
 
+        private string text = string.Empty;
 
+        [Category("jason控件属性")]
+        [Description("显示在控件中心的文本")]
+        public string Text
+        {
+            get { return text; }
+            set
+            {
+                text = value;
+                this.Invalidate();
+            }
+        }
         #endregion
+
+        private bool is3D = false;
+
+        [Category("jason控件属性")]
+        [Description("是否显示立体效果")]
+        public bool Is3D
+        {
+            get { return is3D; }
+            set
+            {
+                is3D = value;
+                this.Invalidate();
+            }
+        }
 
         #region 【5】创建重绘的事件
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
-            g = e.Graphics;//获取画布
-            SetGraphics(g);//设置画布
+            g = e.Graphics; // 获取画布
+            SetGraphics(g); // 设置画布
 
             #region 1，画一个圆
 
@@ -305,7 +331,36 @@ namespace upper_com
 
             #endregion
 
+            #region 4，绘制文本
+            if (!string.IsNullOrEmpty(text))
+            {
+                using (Font font = new Font("Arial", 10))
+                {
+                    SizeF textSize = g.MeasureString(text, font);
+                    PointF textLocation = new PointF(
+                        (this.Width - textSize.Width) / 2,
+                        (this.Height - textSize.Height) / 2
+                    );
 
+                    using (SolidBrush textBrush = new SolidBrush(Color.Black))
+                    {
+                        g.DrawString(text, font, textBrush, textLocation);
+                    }
+                }
+            }
+            #endregion
+
+            #region 立体效果
+
+            if (is3D)
+            {
+                using (Pen pen = new Pen(Color.Gray, 2))
+                {
+                    g.DrawEllipse(pen, 2, 2, this.Width - 4, this.Height - 4);
+                }
+            }
+
+            #endregion
         }
 
         #endregion
@@ -314,5 +369,23 @@ namespace upper_com
         {
 
         }
+
+        protected override void OnClick(EventArgs e)
+        {
+            base.OnClick(e);
+            // 触发自定义点击事件
+            ButtonClick?.Invoke(this, e);
+
+            // 设置为闪烁状态
+            IsFlash = true;
+            timer.Start();
+
+            // 禁用控件或移除事件处理程序
+            this.Enabled = false;
+            // 或者使用下面的代码移除事件处理程序
+            // ButtonClick = null;
+        }
+
+        public event EventHandler ButtonClick;
     }
 }
