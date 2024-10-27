@@ -21,13 +21,17 @@ namespace upper_com
         float Y;
 
         #region 数据定时刷新
-        private FileSystemWatcher fileWatcher;
-        string filePath = @"D:\" + DateTime.Now.ToString("yyyy-MM-dd") + ".xlsx";
+        private FileSystemWatcher currentFileWatcher;
+        private FileSystemWatcher voltageFileWatcher;
+        private readonly string currentFilePath = @"D:\upperCom\" + DateTime.Now.ToString("yyyy-MM-dd") + "_current.xlsx";
+        private readonly string voltageFilePath = @"D:\upperCom\" + DateTime.Now.ToString("yyyy-MM-dd") + "_voltage.xlsx";
         private readonly object currentFileLock = new object();
         private readonly object voltageFileLock = new object();
         #endregion
 
         private System.Windows.Forms.Timer dataChangeTimer;
+
+        private string placeholderText = "用英文逗号分隔，如：0.1,0.5,1.3";
 
         public DataDetection()
         {
@@ -47,6 +51,44 @@ namespace upper_com
 
             // 定时器模拟数据变更
             // InitializeDataChangeTimer();
+
+        }
+
+        private void InputTextBox_Enter(object sender, EventArgs e)
+        {
+            if (inputTextBox.Text == placeholderText)
+            {
+                inputTextBox.Text = "";
+                inputTextBox.ForeColor = Color.Black;
+            }
+        }
+
+        private void InputTextBox_Leave(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(inputTextBox.Text))
+            {
+                inputTextBox.Text = placeholderText;
+                inputTextBox.ForeColor = Color.Gray;
+            }
+        }
+
+        private void syncBtn_Click(object sender, EventArgs e)
+        {
+            if (inputTextBox.Text == placeholderText || string.IsNullOrWhiteSpace(inputTextBox.Text))
+            {
+                MessageBox.Show("请输入数据。");
+                return;
+            }
+
+            string input = inputTextBox.Text;
+            //string[] dataItems = input.Split(',');
+            string[] dataItems = new string[15];
+            for (int i = 0; i < 15; i++)
+            {
+                dataItems[i] = input;
+            }
+            inputTextBox.Text = string.Join(",", dataItems);
+            inputTextBox.ForeColor = Color.Black;
         }
 
         private void InitializeDataChangeTimer()
@@ -61,26 +103,48 @@ namespace upper_com
 
         private void InitializeFileWatcher()
         {
-            fileWatcher = new FileSystemWatcher
+            string directoryPath = @"D:\upperCom";
+            // 检查并创建目录
+            if (!Directory.Exists(directoryPath))
             {
-                Path = Path.GetDirectoryName(filePath),
-                Filter = Path.GetFileName(filePath),
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            // 监控电流文件
+            currentFileWatcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(currentFilePath),
+                Filter = Path.GetFileName(currentFilePath),
                 NotifyFilter = NotifyFilters.LastWrite
             };
-            fileWatcher.Changed += OnFileChanged;
-            fileWatcher.EnableRaisingEvents = true;
+            currentFileWatcher.Changed += OnCurrentFileChanged;
+            currentFileWatcher.EnableRaisingEvents = true;
+
+            // 监控电压文件
+            voltageFileWatcher = new FileSystemWatcher
+            {
+                Path = Path.GetDirectoryName(voltageFilePath),
+                Filter = Path.GetFileName(voltageFilePath),
+                NotifyFilter = NotifyFilters.LastWrite
+            };
+            voltageFileWatcher.Changed += OnVoltageFileChanged;
+            voltageFileWatcher.EnableRaisingEvents = true;
+        }
+
+        private void OnCurrentFileChanged(object sender, FileSystemEventArgs e)
+        {
+            Task.Delay(100).ContinueWith(_ => LoadLatestCurrentDataToDataGridView());
+        }
+
+        private void OnVoltageFileChanged(object sender, FileSystemEventArgs e)
+        {
+            Task.Delay(100).ContinueWith(_ => LoadLatestVoltageDataToDataGridView());
         }
 
         private void LoadData()
         {
             LoadLatestCurrentDataToDataGridView();
             LoadLatestVoltageDataToDataGridView();
-        }
-
-        private void OnFileChanged(object sender, FileSystemEventArgs e)
-        {
-            // 确保文件写入完成后再读取
-            Task.Delay(100).ContinueWith(_ => LoadData());
         }
 
         // 模拟数据变更
@@ -135,15 +199,16 @@ namespace upper_com
             // 清除现有数据
             this.dataGridView2.Rows.Clear();
 
-            if (!File.Exists(filePath))
+            if (!File.Exists(voltageFilePath))
             {
-                MessageBox.Show("当天记录文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                //MessageBox.Show("当天记录的电流数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Console.WriteLine("当天记录的电流数据文件文件不存在，表格数据为空。");
                 return;
             }
 
             try
             {
-                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     IWorkbook workbook = new XSSFWorkbook(fs);
                     ISheet sheet = workbook.GetSheetAt(0);
@@ -173,15 +238,16 @@ namespace upper_com
             // 清除现有数据
             this.dataGridView1.Rows.Clear();
 
-            if (!File.Exists(filePath))
+            if (!File.Exists(currentFilePath))
             {
-                MessageBox.Show("当天记录文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                //MessageBox.Show("当天记录压力数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Console.WriteLine("当天记录的电流数据文件文件不存在，表格数据为空。");
                 return;
             }
 
             try
             {
-                using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                 {
                     IWorkbook workbook = new XSSFWorkbook(fs);
                     ISheet sheet = workbook.GetSheetAt(0);
@@ -237,14 +303,14 @@ namespace upper_com
 
         private void WriteVoltageDataToFile(VoltageData voltageData)
         {
-            lock (currentFileLock)
+            lock (voltageFileLock)
             {
                 try
                 {
                     IWorkbook workbook;
                     ISheet sheet;
 
-                    if (!File.Exists(filePath))
+                    if (!File.Exists(voltageFilePath))
                     {
                         workbook = new XSSFWorkbook();
                         sheet = workbook.CreateSheet("Sheet1");
@@ -261,7 +327,7 @@ namespace upper_com
                     else
                     {
                         // 打开现有文件并追加数据
-                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             workbook = new XSSFWorkbook(fs);
                             sheet = workbook.GetSheetAt(0);
@@ -278,7 +344,7 @@ namespace upper_com
                     //newRow.CreateCell(3).SetCellValue(voltageData.GetSmoothAverage());
 
                     // 写入文件
-                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                    using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                     {
                         workbook.Write(fs);
                     }
@@ -330,7 +396,7 @@ namespace upper_com
                     IWorkbook workbook;
                     ISheet sheet;
 
-                    if (!File.Exists(filePath))
+                    if (!File.Exists(currentFilePath))
                     {
                         workbook = new XSSFWorkbook();
                         sheet = workbook.CreateSheet("Sheet1");
@@ -351,7 +417,7 @@ namespace upper_com
                     else
                     {
                         // 打开现有文件并追加数据
-                        using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             workbook = new XSSFWorkbook(fs);
                             sheet = workbook.GetSheetAt(0);
@@ -374,7 +440,7 @@ namespace upper_com
                     newRow.CreateCell(9).SetCellValue(currentData.GetMutationLower());
 
                     // 写入文件
-                    using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
+                    using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                     {
                         workbook.Write(fs);
                     }
@@ -764,17 +830,50 @@ namespace upper_com
 
         }
 
-        private void myLED_Click(object sender, EventArgs e)
+        private void myBtn_Click(object sender, EventArgs e)
         {
             // 1. 参数校验
             invalidateParams();
 
-            // warningMsg.Text = "Hello World!";
+            MyButton button = sender as MyButton;
+            if (button.IsPlaying)
+            {
+                //MessageBox.Show("暂停");
+                this.myLED1.IsFlash = false;
+                this.myLED1.LedStatus = true;
+                this.myLED1.LedTrueColor = Color.Green;
 
-            // 2. TODO 数据监听并处理
-            this.listenerHandler();
+                this.myLED2.IsFlash = false;
+                this.myLED2.LedStatus = true;
+                this.myLED2.LedTrueColor = Color.Green;
 
-            MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
+                this.myLED3.IsFlash = false;
+                this.myLED3.LedStatus = true;
+                this.myLED3.LedTrueColor = Color.Green;
+            }
+            else
+            {
+                //MessageBox.Show("开始");
+                this.myLED1.IsFlash = true;
+                this.myLED1.LedStatus = true;
+                this.myLED1.LedTrueColor = Color.Green;
+
+                this.myLED2.IsFlash = true;
+                this.myLED2.LedStatus = true;
+                this.myLED2.LedTrueColor = Color.Green;
+
+                this.myLED3.IsFlash = true;
+                this.myLED3.LedStatus = true;
+                this.myLED3.LedTrueColor = Color.Green;
+
+
+                // 2. TODO 数据监听并处理
+                this.listenerHandler();
+            }
+
+            
+
+            //MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
             //dataFilling();
             //ExcelExportUtils.ExportToExcel(this.dataGridView1);
             // this.myLED1.LedStatus = true; // 告警

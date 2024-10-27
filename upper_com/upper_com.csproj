@@ -178,11 +178,17 @@
     <Compile Include="ExcelUtils.cs" />
     <Compile Include="DataQueue.cs" />
     <Compile Include="CurrentData.cs" />
-    <Compile Include="DataScreen.cs">
+    <Compile Include="DataScreenForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="DataScreen.Designer.cs">
-      <DependentUpon>DataScreen.cs</DependentUpon>
+    <Compile Include="DataScreenForm.Designer.cs">
+      <DependentUpon>DataScreenForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MyButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="MyButton.Designer.cs">
+      <DependentUpon>MyButton.cs</DependentUpon>
     </Compile>
     <Compile Include="MyLED.cs">
       <SubType>UserControl</SubType>
@@ -192,11 +198,11 @@
     </Compile>
     <Compile Include="HeartBeatDetection.cs" />
     <Compile Include="MultimeterDetect.cs" />
-    <Compile Include="UpperDetectionFrm.cs" />
+    <Compile Include="UpperDetectionMain.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VoltageData.cs" />
-    <EmbeddedResource Include="DataScreen.resx">
-      <DependentUpon>DataScreen.cs</DependentUpon>
+    <EmbeddedResource Include="DataScreenForm.resx">
+      <DependentUpon>DataScreenForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MyLED.resx">
       <DependentUpon>MyLED.cs</DependentUpon>

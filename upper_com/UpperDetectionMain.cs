@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 
 namespace upper_com
 {
-    internal static class UpperDetectionFrm
+    internal static class UpperDetectionMain
     {
 
         #region 防止应用程序重复打开

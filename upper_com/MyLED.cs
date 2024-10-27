@@ -219,7 +219,7 @@ namespace upper_com
             set
             {
                 flashInterval = value;
-                timer.Interval = flashInterval;//timer的时间间隔要放在这里
+                timer.Interval = flashInterval;// timer的时间间隔要放在这里
                 this.Invalidate();
             }
         }
