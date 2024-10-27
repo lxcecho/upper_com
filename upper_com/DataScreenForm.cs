@@ -12,6 +12,7 @@ using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System.IO;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace upper_com
 {
@@ -839,50 +840,66 @@ namespace upper_com
             if (button.IsPlaying)
             {
                 //MessageBox.Show("暂停");
-                this.myLED1.IsFlash = false;
-                this.myLED1.LedStatus = true;
-                this.myLED1.LedTrueColor = Color.Green;
-
-                this.myLED2.IsFlash = false;
-                this.myLED2.LedStatus = true;
-                this.myLED2.LedTrueColor = Color.Green;
-
                 this.myLED3.IsFlash = false;
                 this.myLED3.LedStatus = true;
                 this.myLED3.LedTrueColor = Color.Green;
+                new PLCDetection(false);
+                new MultimeterDetection(false);
             }
             else
             {
                 //MessageBox.Show("开始");
-                this.myLED1.IsFlash = true;
-                this.myLED1.LedStatus = true;
-                this.myLED1.LedTrueColor = Color.Green;
-
-                this.myLED2.IsFlash = true;
-                this.myLED2.LedStatus = true;
-                this.myLED2.LedTrueColor = Color.Green;
-
                 this.myLED3.IsFlash = true;
                 this.myLED3.LedStatus = true;
                 this.myLED3.LedTrueColor = Color.Green;
-
-
-                // 2. TODO 数据监听并处理
-                this.listenerHandler();
+                new PLCDetection(true);
+                new MultimeterDetection(true);
             }
-
-            
-
-            //MessageBox.Show("数据已经停止采集，采集数据记录在 D://upper//dataDetect.excl");
-            //dataFilling();
-            //ExcelExportUtils.ExportToExcel(this.dataGridView1);
-            // this.myLED1.LedStatus = true; // 告警
-            //或者this.myLED1.LedStatus = false;
         }
 
         private void myLED1_Load(object sender, EventArgs e)
         {
 
+        }
+
+        private void connPlcBtn_Click(object sender, EventArgs e)
+        {
+            string ipAddress = this.plcIp.IpAddress;
+            Console.WriteLine($"IP Address: {ipAddress}");
+            if (string.IsNullOrWhiteSpace(ipAddress) || !IsValidIp(ipAddress))
+            {
+                MessageBox.Show("请输入正确的IP地址！！！");
+            }
+            MultimeterDetection multimeterDetection = new MultimeterDetection(5525, this.myLED2);
+            PLCDetection plcDetection = new PLCDetection(ipAddress, multimeterDetection, this.myLED1);
+            plcDetection.PlcConn();
+        }
+
+        private bool IsValidIp(string ipAddress)
+        {
+            // 正则表达式用于验证IP地址格式
+            string pattern = @"^(\d{1,3}\.){3}\d{1,3}$";
+            if (Regex.IsMatch(ipAddress, pattern))
+            {
+                // 检查每个部分是否在0到255之间
+                string[] parts = ipAddress.Split('.');
+                foreach (string part in parts)
+                {
+                    if (int.TryParse(part, out int num))
+                    {
+                        if (num < 0 || num > 255)
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
         }
     }
 }

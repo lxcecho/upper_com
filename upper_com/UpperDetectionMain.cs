@@ -25,8 +25,6 @@ namespace upper_com
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 Application.Run(new DataDetection());
-                //int a = Convert.ToInt16(Math.Ceiling(Convert.ToDouble(401) / 5));
-                //Console.WriteLine(a);
             }
             else
             {
