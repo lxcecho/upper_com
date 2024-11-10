@@ -46,9 +46,6 @@ namespace upper_com
                         this.myLED1.LedStatus = true;
                         this.myLED1.LedTrueColor = Color.Green;
 
-                        // 启动TCP服务器
-                        await multimeterDetection.StartServer();
-
                         while (true)
                         {
                             if (this.isPlaying)
@@ -58,8 +55,8 @@ namespace upper_com
                                 if (startSignal)
                                 {
                                     Console.WriteLine("收到起始信号");
-                                    // 异步处理万用表数据
-                                    await multimeterDetection.SendReadCommandAsync();
+                                    // 收到起始信号
+                                    multimeterDetection.SetSignal(true);
                                 }
 
                                 // 读取终止信号
@@ -68,12 +65,18 @@ namespace upper_com
                                 {
                                     Console.WriteLine("收到终止信号");
                                     // TODO 停止收集万用表上报数据
-
+                                    multimeterDetection.SetSignal(false);
                                 }
+
+                                // 读取电流测试编号
+                                string currentSerialNo = (string)plc.Read("DB1.DBX0.0");
+                                multimeterDetection.SetCurrentSerialNo(currentSerialNo);
+
+                                // TODO 处理压力数据
                             }
 
                             // 等待一段时间再检查
-                            await Task.Delay(100);
+                            await Task.Delay(10);
                         }
                     }
                 }

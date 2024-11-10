@@ -16,6 +16,7 @@ namespace upper_com
         public MyButton()
         {
             InitializeComponent();
+            this.Enabled = true; // 初始状态为禁用
         }
 
         private bool isPlaying = false;
@@ -32,8 +33,6 @@ namespace upper_com
 
         protected override void OnPaint(PaintEventArgs pevent)
         {
-            //base.OnPaint(pevent);
-            // 不调用 base.OnPaint(pevent) 以避免默认绘制
             pevent.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
             // 设置按钮为圆形
@@ -42,7 +41,8 @@ namespace upper_com
             this.Region = new Region(path);
 
             // 绘制按钮背景
-            pevent.Graphics.FillEllipse(Brushes.LightGray, 0, 0, this.Width, this.Height);
+            Brush backgroundBrush = this.Enabled ? Brushes.LightGray : Brushes.DarkGray;
+            pevent.Graphics.FillEllipse(backgroundBrush, 0, 0, this.Width, this.Height);
 
             if (isPlaying)
             {
@@ -59,10 +59,10 @@ namespace upper_com
             {
                 // 绘制播放图标
                 Point[] trianglePoints = {
-                new Point(this.Width / 3, this.Height / 4), // 左顶点
-                new Point(this.Width / 3, 3 * this.Height / 4), // 左底点
-                new Point(2 * this.Width / 3, this.Height / 2) // 右顶点
-            };
+                    new Point(this.Width / 3, this.Height / 4), // 左顶点
+                    new Point(this.Width / 3, 3 * this.Height / 4), // 左底点
+                    new Point(2 * this.Width / 3, this.Height / 2) // 右顶点
+                };
 
                 pevent.Graphics.FillPolygon(Brushes.Red, trianglePoints);
             }
@@ -70,8 +70,18 @@ namespace upper_com
 
         protected override void OnClick(EventArgs e)
         {
-            base.OnClick(e);
-            IsPlaying = !IsPlaying; // 切换状态
+            if (this.Enabled) // 仅当按钮启用时才处理点击事件
+            {
+                base.OnClick(e);
+                IsPlaying = !IsPlaying; // 切换状态
+            }
+        }
+
+        // 方法用于设置按钮的启用状态
+        public void SetButtonEnabled(bool enabled)
+        {
+            this.Enabled = enabled;
+            this.Invalidate(); // 重新绘制按钮以反映状态变化
         }
     }
 }

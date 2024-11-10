@@ -24,7 +24,7 @@ namespace upper_com
 
                     // 写入标题行
                     IRow headerRow = sheet.CreateRow(0);
-                    headerRow.CreateCell(0).SetCellValue("序号");
+                    headerRow.CreateCell(0).SetCellValue("测试编号");
                     headerRow.CreateCell(1).SetCellValue("时间");
                     headerRow.CreateCell(2).SetCellValue("电流I1");
                     headerRow.CreateCell(3).SetCellValue("I1均值");
@@ -53,11 +53,11 @@ namespace upper_com
             // 追加数据
             newRow.CreateCell(0).SetCellValue(currentData.GetSerialNo());
             newRow.CreateCell(1).SetCellValue(currentData.GetCurDate());
-            newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
+            //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
             newRow.CreateCell(3).SetCellValue(currentData.GetSmoothAverage());
             newRow.CreateCell(4).SetCellValue(currentData.GetSmoothUpper());
             newRow.CreateCell(5).SetCellValue(currentData.GetSmoothLower());
-            newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
+            //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
             newRow.CreateCell(7).SetCellValue(currentData.GetMutationAverage());
             newRow.CreateCell(8).SetCellValue(currentData.GetMutationUpper());
             newRow.CreateCell(9).SetCellValue(currentData.GetMutationLower());

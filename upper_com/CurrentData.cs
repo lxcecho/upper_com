@@ -8,15 +8,15 @@ namespace upper_com
 {
     class CurrentData
     {
-        private int serialNo;
+        private string serialNo;
         private string curDate;
         // =========平稳段==============
-        private double smoothCur;
+        //private double smoothCur;
         private double smoothAverage;
         private double smoothUpper;
         private double smoothLower;
         // =========突变段=============
-        private double mutationCur;
+        //private double mutationCur;
         private double mutationAverage;
         private double mutationUpper;
         private double mutationLower;
@@ -26,29 +26,29 @@ namespace upper_com
 
         }
 
-        public CurrentData(int serialNo, string curDate, double smoothCur, double smoothAverage,
-            double smoothUpper, double smoothLower, double mutationCur,
+        public CurrentData(string serialNo, string curDate, /*double smoothCur,*/ double smoothAverage,
+            double smoothUpper, double smoothLower, /*double mutationCur,*/
             double mutationAverage, double mutationUpper, double mutationLower)
         {
             this.serialNo = serialNo;
             this.curDate = curDate;
-            this.smoothCur = smoothCur;
+            //this.smoothCur = smoothCur;
             this.smoothAverage = smoothAverage;
             this.smoothUpper = smoothUpper;
             this.smoothLower = smoothLower;
-            this.mutationCur = mutationCur;
+            //this.mutationCur = mutationCur;
             this.mutationAverage = mutationAverage;
             this.mutationUpper = mutationUpper;
             this.mutationLower = mutationLower;
         }
 
-        public int GetSerialNo() { return serialNo; }
+        public string GetSerialNo() { return serialNo; }
         public string GetCurDate() { return curDate; }
 
-        public double GetSmoothCur()
+        /*public double GetSmoothCur()
         {
             return smoothCur;
-        }
+        }*/
 
         public double GetSmoothAverage()
         {
@@ -63,10 +63,10 @@ namespace upper_com
         {
             return smoothLower;
         }
-        public double GetMutationCur()
+        /*public double GetMutationCur()
         {
             return mutationCur;
-        }
+        }*/
         public double GetMutationAverage()
         {
             return mutationAverage;
@@ -80,16 +80,16 @@ namespace upper_com
             return mutationLower;
         }
 
-        public void SetSerialNo(int serialNo)
+        public void SetSerialNo(string serialNo)
         {
             this.serialNo = serialNo;
         }
         public void SetCurDate(string curDate) { this.curDate = curDate; }
 
-        public void SetSmoothCur(double smoothCur)
+        /*public void SetSmoothCur(double smoothCur)
         {
             this.smoothCur = smoothCur;
-        }
+        }*/
         public void SetSmoothAverage(double smoothAverage)
         {
             this.smoothAverage = smoothAverage;
@@ -103,10 +103,10 @@ namespace upper_com
             this.smoothLower = smoothLower;
         }
 
-        public void SetMutationCur(double mutationCur)
+        /*public void SetMutationCur(double mutationCur)
         {
             this.mutationCur = mutationCur;
-        }
+        }*/
         public void SetMutationAverage(double mutationAverage)
         {
             this.mutationAverage = mutationAverage;

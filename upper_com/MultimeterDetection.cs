@@ -4,113 +4,316 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
+using System.Threading;
+using System.Collections.Generic;
+using S7.Net.Types;
+using DateTime = System.DateTime;
+using System.Windows.Forms;
+using Ivi.Visa;
+using NationalInstruments.Visa;
+using System.IO;
+using System.Diagnostics;
+using System.Timers;
+using System.Linq;
+using Org.BouncyCastle.Bcpg.Sig;
 
 namespace upper_com
 {
     internal class MultimeterDetection
     {
-        private readonly int port; // 万用表的端口号
-        TcpListener server;
-        private TcpClient client;
+        private readonly string ip = "192.168.1.25"; // 万用表IP
+
         private MyLED myLED2;
+
+        private DataGridView dataGridView1;
+
         private bool isPlaying;
 
-        public MultimeterDetection(bool isPlaying)
+        private InputData inputData;
+
+        Queue<(int start, int duration)> timeQueue;
+
+        private bool isCollectingData; // 控制数据采集的标志
+
+        private string currentSerialNo; // 电流测试编号
+
+        private CurrentDataQueue currentDataQueue;
+
+        // 静态变量确保只创建一次
+        private static ResourceManager rm;
+        private static MessageBasedSession mbSession;
+        private static readonly object lockObj = new object();
+
+        private Queue<(double i1, double i2)> queue;
+
+        public MultimeterDetection(MyLED myLED2, DataGridView dataGridView1)
+        {
+            this.myLED2 = myLED2;
+            this.dataGridView1 = dataGridView1;
+
+            InitializeSession();
+        }
+
+        private void InitializeSession()
+        {
+            if (mbSession == null)
+            {
+                lock (lockObj)
+                {
+                    if (mbSession == null)
+                    {
+                        try
+                        {
+                            if (rm == null)
+                            {
+                                rm = new ResourceManager();
+                            }
+
+                            var resource = $"TCPIP0::{ip}::inst0::INSTR";
+                            mbSession = (MessageBasedSession)rm.Open(resource);
+                            mbSession.TimeoutMilliseconds = 5000; // 设置超时时间
+
+                            Console.WriteLine("连接成功");
+                            UpdateLEDStatus(Color.Green);
+                        }
+                        catch (VisaException ex)
+                        {
+                            Console.WriteLine("VISA错误: " + ex.Message);
+                            UpdateLEDStatus(Color.DimGray);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("发生错误: " + ex.Message);
+                            UpdateLEDStatus(Color.DimGray);
+                        }
+                    }
+                }
+            }
+        }
+
+        public void SetInputDate(InputData data)
+        {
+            this.inputData = data;
+        }
+
+        public InputData GetInputData()
+        {
+            return this.inputData;
+        }
+
+        public void SetIsPlaying(bool isPlaying)
         {
             this.isPlaying = isPlaying;
         }
 
-        public MultimeterDetection(int port, MyLED myLED2)
+        public bool GetIsPlaying()
         {
-            this.port = port;
-            // TODO 服务器
-            server = new TcpListener(IPAddress.Any, port);
-            this.myLED2 = myLED2;
+            return this.isPlaying;
         }
 
-        public async Task StartServer()
+        public async Task SendConfigCommand()
         {
-            server.Start();
-            Console.WriteLine($"服务器已启动，正在监听端口 {port}...");
-
             try
             {
-                // 等待客户端连接
-                client = await server.AcceptTcpClientAsync();
-                Console.WriteLine("客户端已连接");
-                // TODO LED 灯变绿
-                this.myLED2.IsFlash = false;
-                this.myLED2.LedStatus = true;
-                this.myLED2.LedTrueColor = Color.Green;
+                // 检查连接是否成功
+                if (mbSession != null)
+                {
+                    // 发送查询命令
+
+                    // 设置挡位，自动调整量程
+                    mbSession.RawIO.Write("CONF:CURR:DC AUTO");
+                    // 如果需要确认命令执行，可以发送查询命令
+                    mbSession.RawIO.Write("*OPC?\n"); // 查询操作完成
+                    string responseConfig = mbSession.RawIO.ReadString();
+                    if (responseConfig.Equals("1"))
+                    {
+                        // 设置触发源为立即触发
+                        mbSession.RawIO.Write("TRIG:SOUR IMM");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("无法连接设备！！！！！！！！！");
+                    UpdateLEDStatus(Color.DimGray);
+                }
             }
             catch (Exception ex)
             {
-                this.myLED2.IsFlash = false;
-                this.myLED2.LedStatus = true;
-                this.myLED2.LedTrueColor = Color.DimGray;
-                Console.WriteLine($"客户端连接失败: {ex.Message}");
+                Console.WriteLine($"发送配置命令时出错: {ex.Message}");
             }
+        }
 
+        public void SetSignal(bool signal)
+        {
+            this.isCollectingData = signal;
+        }
+
+        public void SetCurrentSerialNo(string serialNo)
+        {
+            this.currentSerialNo = serialNo;
+        }
+
+        public async Task StartCollectingData()
+        {
+            // TODO 调试万用表测试
+            if (this.isPlaying)
+            {
+                await SendReadCommandAsync();
+            }
+            else
+            {
+                MessageBox.Show("暂不处理！！！！！！！！");
+            }
         }
 
         public async Task SendReadCommandAsync()
         {
-            if (client != null && client.Connected)
-            {
-                try
-                {
-                    NetworkStream stream = client.GetStream();
-                    byte[] commandBytes = Encoding.ASCII.GetBytes("READ?");
-                    await stream.WriteAsync(commandBytes, 0, commandBytes.Length);
-                    Console.WriteLine("Sent Command: " + "READ?");
-
-                    // 发送指令后立即接收数据
-                    await ReceiveDataAsync(stream);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error sending command or receiving data: {ex.Message}");
-                }
-            }
-        }
-
-        private async Task ReceiveDataAsync(NetworkStream stream)
-        {
             try
             {
-                while (true)
+                mbSession.RawIO.Write("INIT");
+                // 如果需要确认命令执行，可以发送查询命令
+                mbSession.RawIO.Write("*OPC?\n"); // 查询操作完成
+                string responseInit = mbSession.RawIO.ReadString();
+                if (responseInit.Equals("1"))
                 {
-                    if (this.isPlaying)
-                    {
-                        if (stream.DataAvailable)
-                        {
-                            byte[] responseBytes = new byte[1024];
-                            int bytesRead = await stream.ReadAsync(responseBytes, 0, responseBytes.Length);
-                            string data = Encoding.ASCII.GetString(responseBytes, 0, bytesRead).Trim();
-                            Console.WriteLine("Received Data: " + data);
+                    /*mbSession.RawIO.Write("FETCH?\n");
+                    string response = mbSession.RawIO.ReadString();
+                    Console.WriteLine("Measurement Data: " + response);*/
 
-                            // TODO 数据解析
-
-
-                            // break; // 处理完数据后退出循环
-                        }
-                    }
-                    await Task.Delay(100); // 短暂延迟以避免过度占用CPU
+                    _ = FetchgingData();
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error receiving data: {ex.Message}");
+                Console.WriteLine($"Error sending command or receiving data: {ex.Message}");
             }
-            finally
+
+        }
+
+        private async Task FetchgingData()
+        {
+            while (true)
             {
-                stream.Close();
-                client.Close();
-                this.myLED2.IsFlash = false;
-                this.myLED2.LedStatus = true;
-                this.myLED2.LedTrueColor = Color.DimGray;
-                Console.WriteLine("客户端已断开连接");
+                if (inputData != null && inputData.DataQueue.Count > 0 && isCollectingData)
+                {
+                    currentDataQueue = new CurrentDataQueue(this.dataGridView1, inputData.Num, inputData.K); // 初始化 DataQueue
+                    timeQueue = new Queue<(int start, int duration)>(inputData.DataQueue);
+
+                    while (timeQueue.Count > 0)
+                    {
+                        List<double> stableData = new List<double>();
+                        List<double> mutationData = new List<double>();
+
+                        AllCurrentData all = new AllCurrentData();
+
+                        var data = timeQueue.Dequeue();
+                        Stopwatch stopwatch = new Stopwatch();
+                        stopwatch.Start(); // 重置并启动计时器
+
+                        while (stopwatch.ElapsedMilliseconds < data.start + data.duration)
+                        {
+                            if (stopwatch.ElapsedMilliseconds >= data.start && stopwatch.ElapsedMilliseconds < data.start + data.duration)
+                            {
+                                Console.WriteLine("开始采集平稳段数据");
+                                mbSession.RawIO.Write("FETCH?\n");
+                                string response = mbSession.RawIO.ReadString();
+                                if (double.TryParse(response, out double value))
+                                {
+                                    stableData.Add(value * 3000);
+                                }
+                                Console.WriteLine("Stable Phase Data: " + response);
+                            }
+
+                            if (stopwatch.ElapsedMilliseconds >= data.start + data.duration)
+                            {
+                                Console.WriteLine("开始采集突变段数据");
+                                mbSession.RawIO.Write("FETCH?\n");
+                                string response = mbSession.RawIO.ReadString();
+                                if (double.TryParse(response, out double value))
+                                {
+                                    mutationData.Add(value * 3000);
+                                }
+                                Console.WriteLine("Mutation Phase Data: " + response);
+                                break;
+                            }
+
+                            if (!isCollectingData)
+                            {
+                                Console.WriteLine("收到终止信号，停止数据采集");
+                                break;
+                            }
+
+                            await Task.Delay(10); // 短暂延迟以避免过度占用CPU
+                        }
+
+                        stopwatch.Stop();
+
+
+                        // 计算平稳段和突变段的平均值
+                        double stableAverage = stableData.Count > 0 ? stableData.Average() : 0;
+                        double mutationAverage = mutationData.Count > 0 ? mutationData.Average() : 0;
+
+                        // 将所有数据都添加到 DataQueue
+                        all.StatbleList = stableData;
+                        all.MutationList = mutationData;
+                        all.SerialNo = this.currentSerialNo;
+                        currentDataQueue.AddData(stableAverage, mutationAverage, all);
+                    }
+                }
+                else
+                {
+                    await Task.Delay(100); // 如果没有数据或未开始采集，稍作延迟
+                }
             }
+        }
+
+        public async Task TestData()
+        {
+            currentDataQueue = new CurrentDataQueue(this.dataGridView1, 20, 3);
+            List<double> stableData = new List<double>();
+            List<double> mutationData = new List<double>();
+
+            AllCurrentData all = new AllCurrentData();
+
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+            stableData.Add(0.99877156E-03 * 3000);
+
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+            mutationData.Add(1.99877156E-03 * 3000);
+
+
+            // 计算平稳段和突变段的平均值
+            double stableAverage = stableData.Count > 0 ? stableData.Average() : 0;
+            double mutationAverage = mutationData.Count > 0 ? mutationData.Average() : 0;
+
+            // 将所有数据都添加到 DataQueue
+            all.StatbleList = stableData;
+            all.MutationList = mutationData;
+            all.SerialNo = "1001";
+            currentDataQueue.AddData(stableAverage, mutationAverage, all);
+        }
+
+        private void UpdateLEDStatus(Color color)
+        {
+            this.myLED2.IsFlash = false;
+            this.myLED2.LedStatus = true;
+            this.myLED2.LedTrueColor = color;
         }
     }
 
