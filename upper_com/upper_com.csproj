@@ -186,6 +186,7 @@
     <Compile Include="ChartForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="VoltageDataQueue.cs" />
     <Compile Include="DataUpdatedEventArgs .cs" />
     <Compile Include="ExcelUtils.cs" />
     <Compile Include="CurrentDataQueue.cs" />
@@ -254,6 +255,9 @@
   <ItemGroup>
     <Content Include="libnodave_jfkmod.dll" />
     <Content Include="libnodave_jfkmod64.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />

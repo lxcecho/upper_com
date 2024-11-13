@@ -225,8 +225,6 @@ namespace upper_com
                 double lowerLimitI1 = meanI1 - k * stdDevI1;
                 double upperLimitI1 = meanI1 + k * stdDevI1;
 
-                
-
                 // 判断I1和I2是否在限值内 不在限值内，报警
                 if ((i1 < lowerLimitI1 || i1 > upperLimitI1))
                 {
@@ -249,6 +247,10 @@ namespace upper_com
             {
                 CheckForTrend();
             }
+
+            // TODO 这里要处理元数据，画T曲线
+            VoltageDataProcessed();
+
         }
 
         // 更新最近 20 个平均值的历史记录。
@@ -291,11 +293,10 @@ namespace upper_com
             }
         }
 
-        private async void DataProcessed()
+        private async void VoltageDataProcessed()
         {
             Console.WriteLine("OnDataUpdated called.");
 
-            
             // 在这里处理更新的数据
             var voltage = new VoltageData();
             /* 初始化 CurrentData 对象的参数 */

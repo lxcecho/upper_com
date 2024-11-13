@@ -44,51 +44,66 @@ namespace upper_com
         private static MessageBasedSession mbSession;
         private static readonly object lockObj = new object();
 
-        private Queue<(double i1, double i2)> queue;
+        private CancellationTokenSource cancellationTokenSource;
 
         public MultimeterDetection(MyLED myLED2, DataGridView dataGridView1)
         {
             this.myLED2 = myLED2;
             this.dataGridView1 = dataGridView1;
 
-            InitializeSession();
+            this.cancellationTokenSource = new CancellationTokenSource();
+            InitializeSession(cancellationTokenSource.Token);
         }
 
-        private void InitializeSession()
+        private async void InitializeSession(CancellationToken token)
         {
             if (mbSession == null)
             {
                 lock (lockObj)
                 {
-                    if (mbSession == null)
+                    if (rm == null)
                     {
-                        try
-                        {
-                            if (rm == null)
-                            {
-                                rm = new ResourceManager();
-                            }
+                        rm = new ResourceManager();
+                    }
+                }
 
-                            var resource = $"TCPIP0::{ip}::inst0::INSTR";
-                            mbSession = (MessageBasedSession)rm.Open(resource);
-                            mbSession.TimeoutMilliseconds = 5000; // 设置超时时间
+                while (mbSession == null)
+                {
+                    try
+                    {
+                        token.ThrowIfCancellationRequested(); // 检查取消请求
 
-                            Console.WriteLine("连接成功");
-                            UpdateLEDStatus(Color.Green);
-                        }
-                        catch (VisaException ex)
-                        {
-                            Console.WriteLine("VISA错误: " + ex.Message);
-                            UpdateLEDStatus(Color.DimGray);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine("发生错误: " + ex.Message);
-                            UpdateLEDStatus(Color.DimGray);
-                        }
+                        var resource = $"TCPIP0::{ip}::inst0::INSTR";
+                        mbSession = (MessageBasedSession)rm.Open(resource);
+                        mbSession.TimeoutMilliseconds = 5000; // 设置超时时间
+
+                        Console.WriteLine("连接成功");
+                        UpdateLEDStatus(Color.Green);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        Console.WriteLine("连接操作被取消");
+                        break; // 退出循环
+                    }
+                    catch (VisaException ex)
+                    {
+                        Console.WriteLine("VISA错误: " + ex.Message);
+                        UpdateLEDStatus(Color.DimGray);
+                        await Task.Delay(1000, token); // 每秒重试一次，支持取消
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("发生错误: " + ex.Message);
+                        UpdateLEDStatus(Color.DimGray);
+                        await Task.Delay(1000, token); // 每秒重试一次，支持取消
                     }
                 }
             }
+        }
+
+        public void CancelConnection()
+        {
+            cancellationTokenSource.Cancel(); // 请求取消连接操作
         }
 
         public void SetInputDate(InputData data)
@@ -192,14 +207,19 @@ namespace upper_com
 
         private async Task FetchgingData()
         {
-            while (true)
+            // 循环检查收集数据的状态，此状态由PLC设置
+            while (isCollectingData)
             {
-                if (inputData != null && inputData.DataQueue.Count > 0 && isCollectingData)
+                if (inputData != null && inputData.DataQueue.Count > 0)
                 {
+                    // TODO 调试使用，真正需要放在收到起始信号位置开始
+                    //start = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+
                     currentDataQueue = new CurrentDataQueue(this.dataGridView1, inputData.Num, inputData.K); // 初始化 DataQueue
                     timeQueue = new Queue<(int start, int duration)>(inputData.DataQueue);
 
-                    while (timeQueue.Count > 0)
+                    // 循环遍历15组时间设置
+                    while (timeQueue.Count > 0 && isCollectingData)
                     {
                         List<double> stableData = new List<double>();
                         List<double> mutationData = new List<double>();
@@ -210,11 +230,14 @@ namespace upper_com
                         Stopwatch stopwatch = new Stopwatch();
                         stopwatch.Start(); // 重置并启动计时器
 
-                        while (stopwatch.ElapsedMilliseconds < data.start + data.duration)
+                        Console.WriteLine("flag1=" + stopwatch.ElapsedMilliseconds + "start: " + data.start + ", duration: " + data.duration);
+
+                        // 收集平稳段数据
+                        while (stopwatch.ElapsedMilliseconds < (data.start + data.duration) && isCollectingData)
                         {
-                            if (stopwatch.ElapsedMilliseconds >= data.start && stopwatch.ElapsedMilliseconds < data.start + data.duration)
+                            if (stopwatch.ElapsedMilliseconds >= data.start)
                             {
-                                Console.WriteLine("开始采集平稳段数据");
+                                //Console.WriteLine("开始采集平稳段数据");
                                 mbSession.RawIO.Write("FETCH?\n");
                                 string response = mbSession.RawIO.ReadString();
                                 if (double.TryParse(response, out double value))
@@ -223,10 +246,14 @@ namespace upper_com
                                 }
                                 Console.WriteLine("Stable Phase Data: " + response);
                             }
+                        }
 
+                        // 收集突变段数据
+                        while (isCollectingData)
+                        {
                             if (stopwatch.ElapsedMilliseconds >= data.start + data.duration)
                             {
-                                Console.WriteLine("开始采集突变段数据");
+                                //Console.WriteLine("开始采集突变段数据");
                                 mbSession.RawIO.Write("FETCH?\n");
                                 string response = mbSession.RawIO.ReadString();
                                 if (double.TryParse(response, out double value))
@@ -236,14 +263,6 @@ namespace upper_com
                                 Console.WriteLine("Mutation Phase Data: " + response);
                                 break;
                             }
-
-                            if (!isCollectingData)
-                            {
-                                Console.WriteLine("收到终止信号，停止数据采集");
-                                break;
-                            }
-
-                            await Task.Delay(10); // 短暂延迟以避免过度占用CPU
                         }
 
                         stopwatch.Stop();
@@ -262,7 +281,7 @@ namespace upper_com
                 }
                 else
                 {
-                    await Task.Delay(100); // 如果没有数据或未开始采集，稍作延迟
+                    await Task.Delay(500); // 如果没有数据或未开始采集，稍作延迟
                 }
             }
         }

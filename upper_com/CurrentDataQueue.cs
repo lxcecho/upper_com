@@ -171,7 +171,8 @@ namespace upper_com
                 CheckForTrend();
             }
 
-            DataProcessed(all);
+            // 处理每一组数据元
+            CurrentDataProcessed(all);
         }
 
         // 更新最近 20 个平均值的历史记录。
@@ -231,41 +232,49 @@ namespace upper_com
             }
         }
 
-        private async void DataProcessed(AllCurrentData all)
+        // 处理数据元，用来画T曲线
+        private async void CurrentDataProcessed(AllCurrentData all)
         {
             Console.WriteLine("OnDataUpdated called.");
-
-            string serialNo = all.SerialNo;
-
-            List<double> stableList = all.StatbleList;
-            double stableAverage = stableList.Count > 0 ? stableList.Average() : 0;
-            double varianceS = stableList.Average(v => Math.Pow(v - stableAverage, 2));
-            double standardDeviationS = Math.Sqrt(varianceS);
-
-            double stableLimit = stableAverage - k * standardDeviationS;
-            double stableUpper = stableAverage + k * standardDeviationS;
-
-            List<double> mutationList = all.MutationList;
-            double mutationAverage = mutationList.Count > 0 ? mutationList.Average() : 0;
-            double varianceM = stableList.Average(v => Math.Pow(v - stableAverage, 2));
-            double standardDeviationM = Math.Sqrt(varianceM);
-
-            double mutationLimit = stableAverage - k * standardDeviationM;
-            double mutationUpper = stableAverage + k * standardDeviationM;
 
             // 在这里处理更新的数据
             var currentData = new CurrentData();
             /* 初始化 CurrentData 对象的参数 */
 
+            string serialNo = all.SerialNo;
             currentData.SetSerialNo(serialNo);
             currentData.SetCurDate(DateTime.Now.ToString());
-            currentData.SetSmoothAverage(stableAverage);
-            currentData.SetSmoothLower(stableLimit);
-            currentData.SetSmoothUpper(stableUpper);
 
-            currentData.SetMutationAverage(mutationAverage);
-            currentData.SetMutationLower(mutationLimit);
-            currentData.SetMutationUpper(mutationUpper);
+            List<double> stableList = all.StatbleList;
+
+            if (stableList != null && stableList.Count > 0)
+            {
+                double stableAverage = stableList.Count > 0 ? stableList.Average() : 0;
+                double varianceS = stableList.Average(v => Math.Pow(v - stableAverage, 2));
+                double standardDeviationS = Math.Sqrt(varianceS);
+
+                double stableLimit = stableAverage - k * standardDeviationS;
+                double stableUpper = stableAverage + k * standardDeviationS;
+
+                currentData.SetSmoothAverage(stableAverage);
+                currentData.SetSmoothLower(stableLimit);
+                currentData.SetSmoothUpper(stableUpper);
+            }
+
+            List<double> mutationList = all.MutationList;
+            if (mutationList != null && mutationList.Count > 0)
+            {
+                double mutationAverage = mutationList.Count > 0 ? mutationList.Average() : 0;
+                double varianceM = stableList.Average(v => Math.Pow(v - mutationAverage, 2));
+                double standardDeviationM = Math.Sqrt(varianceM);
+
+                double mutationLimit = mutationAverage - k * standardDeviationM;
+                double mutationUpper = mutationAverage + k * standardDeviationM;
+
+                currentData.SetMutationAverage(mutationAverage);
+                currentData.SetMutationLower(mutationLimit);
+                currentData.SetMutationUpper(mutationUpper);
+            }
 
             UpdateCurrentData(currentData);
 
@@ -349,13 +358,19 @@ namespace upper_com
 
         private void AddCurrentDataToGridView(CurrentData currentData)
         {
-            // 更新 DataGridView
-            this.dataGridView1.Rows.Add(currentData.GetSerialNo(), currentData.GetCurDate(), currentData.GetSmoothAverage(),
-                currentData.GetSmoothUpper(), currentData.GetSmoothLower(), currentData.GetMutationAverage(),
-                currentData.GetMutationUpper(), currentData.GetMutationLower());
-            if (this.dataGridView1.Rows.Count > 15)
+            if (currentData != null)
             {
-                this.dataGridView1.Rows.RemoveAt(0);
+                // 更新 DataGridView
+                this.dataGridView1.Rows.Add(currentData.GetSerialNo(), currentData.GetCurDate(), currentData.GetSmoothAverage(),
+                    currentData.GetSmoothUpper(), currentData.GetSmoothLower(), currentData.GetMutationAverage(),
+                    currentData.GetMutationUpper(), currentData.GetMutationLower());
+
+                // 检查当前行数是否超过 15
+                if (this.dataGridView1.Rows.Count >= 15)
+                {
+                    // 删除最旧的行（第一行）
+                    this.dataGridView1.Rows.RemoveAt(0);
+                }
             }
         }
 
@@ -378,13 +393,13 @@ namespace upper_com
                         headerRow.CreateCell(0).SetCellValue("测试编号");
                         headerRow.CreateCell(1).SetCellValue("时间");
                         //headerRow.CreateCell(2).SetCellValue("电流I1");
-                        headerRow.CreateCell(3).SetCellValue("I1均值");
-                        headerRow.CreateCell(4).SetCellValue("I1上限");
-                        headerRow.CreateCell(5).SetCellValue("I1下限");
+                        headerRow.CreateCell(2).SetCellValue("I1均值");
+                        headerRow.CreateCell(3).SetCellValue("I1上限");
+                        headerRow.CreateCell(4).SetCellValue("I1下限");
                         //headerRow.CreateCell(6).SetCellValue("电流I2");
-                        headerRow.CreateCell(7).SetCellValue("I2均值");
-                        headerRow.CreateCell(8).SetCellValue("I2上限");
-                        headerRow.CreateCell(9).SetCellValue("I2下限");
+                        headerRow.CreateCell(5).SetCellValue("I2均值");
+                        headerRow.CreateCell(6).SetCellValue("I2上限");
+                        headerRow.CreateCell(7).SetCellValue("I2下限");
                     }
                     else
                     {
@@ -399,17 +414,20 @@ namespace upper_com
                     // 找到最后一行
                     int lastRowNum = sheet.LastRowNum;
                     IRow newRow = sheet.CreateRow(lastRowNum + 1);
-                    // 追加数据
-                    newRow.CreateCell(0).SetCellValue(currentData.GetSerialNo());
-                    newRow.CreateCell(1).SetCellValue(currentData.GetCurDate());
-                    //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
-                    newRow.CreateCell(3).SetCellValue(currentData.GetSmoothAverage());
-                    newRow.CreateCell(4).SetCellValue(currentData.GetSmoothUpper());
-                    newRow.CreateCell(5).SetCellValue(currentData.GetSmoothLower());
-                    //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
-                    newRow.CreateCell(7).SetCellValue(currentData.GetMutationAverage());
-                    newRow.CreateCell(8).SetCellValue(currentData.GetMutationUpper());
-                    newRow.CreateCell(9).SetCellValue(currentData.GetMutationLower());
+                    if (currentData != null)
+                    {
+                        // 追加数据
+                        newRow.CreateCell(0).SetCellValue(currentData.GetSerialNo());
+                        newRow.CreateCell(1).SetCellValue(currentData.GetCurDate());
+                        //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
+                        newRow.CreateCell(2).SetCellValue(currentData.GetSmoothAverage());
+                        newRow.CreateCell(3).SetCellValue(currentData.GetSmoothUpper());
+                        newRow.CreateCell(4).SetCellValue(currentData.GetSmoothLower());
+                        //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
+                        newRow.CreateCell(5).SetCellValue(currentData.GetMutationAverage());
+                        newRow.CreateCell(6).SetCellValue(currentData.GetMutationUpper());
+                        newRow.CreateCell(7).SetCellValue(currentData.GetMutationLower());
+                    }
 
                     // 写入文件
                     using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))

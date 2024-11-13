@@ -40,7 +40,7 @@ namespace upper_com
 
         private MultimeterDetection multimeterDetection;
 
-        private CurrentDataQueue dataQueue;
+        private PLCDetection plcDetection;
 
         public DataDetection()
         {
@@ -55,10 +55,6 @@ namespace upper_com
 
             // 程序启动时加载数据
             LoadData();
-
-            // 连接事件处理程序
-            this.dataGridView1.CellClick += new DataGridViewCellEventHandler(dataGridView1_CellContentClick);
-            this.dataGridView2.CellClick += new DataGridViewCellEventHandler(dataGridView2_CellContentClick);
 
             StartServerInBackground();
 
@@ -269,8 +265,6 @@ namespace upper_com
             }
         }
 
-        
-
         private async void UpdateVoltagetData(VoltageData voltageData)
         {
             if (this.dataGridView2.InvokeRequired)
@@ -355,7 +349,6 @@ namespace upper_com
             }
         }
 
-        
 
         #region 控件自适应窗口大小
         private void setTag(Control cons)
@@ -470,10 +463,10 @@ namespace upper_com
             this.dataGridView1.Rows.Add(dgvr);
         }
 
-        ChartForm chartFormForCurrent;
-
+        private ChartForm chartFormForCurrent;
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
+            Console.WriteLine("CellClick event triggered");
             if (e.RowIndex >= 0) // 确保点击的是有效行
             {
                 // 从选中的行中获取数据
@@ -489,22 +482,64 @@ namespace upper_com
 
                     if (currentValues.Count > 0)
                     {
-                        // 检查ChartForm是否已经存在并且没有被关闭
                         if (chartFormForCurrent == null || chartFormForCurrent.IsDisposed)
                         {
                             // 创建并显示新的ChartForm
-                            chartFormForCurrent = new ChartForm(currentValues.ToArray());
+                            chartFormForCurrent = new ChartForm(currentValues.ToArray(), serialNo);
                             chartFormForCurrent.Show();
                         }
                         else
                         {
-                            // 如果ChartForm已经打开，可以选择将其置于前台
-                            chartFormForCurrent.BringToFront();
+                            // 更新现有的ChartForm的数据
+                            chartFormForCurrent.UpdateChart(currentValues.ToArray(), serialNo);
                         }
                     }
                     else
                     {
                         MessageBox.Show("未找到对应的电流数据。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("该行的序列号为空。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private ChartForm chartFormForVoltage；
+        private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0) // 确保点击的是有效行
+            {
+                // 从选中的行中获取数据
+                DataGridViewRow row = dataGridView2.Rows[e.RowIndex];
+
+                // 检查第一列的值是否为 null
+                if (row.Cells[0].Value != null)
+                {
+                    string serialNo = row.Cells[0].Value.ToString(); // 假设第一列是 serialNo
+
+                    // 从 Excel 文件中加载相应的电压值
+                    List<double> voltageValues = LoadVoltageValuesFromExcel(serialNo);
+
+                    if (voltageValues.Count > 0)
+                    {
+                        
+                        if (chartFormForVoltage == null || chartFormForVoltage.IsDisposed)
+                        {
+                            // 创建并显示新的ChartForm
+                            chartFormForVoltage = new ChartForm(voltageValues.ToArray(), serialNo);
+                            chartFormForVoltage.Show();
+                        }
+                        else
+                        {
+                            // 更新现有的ChartForm的数据
+                            chartFormForCurrent.UpdateChart(voltageValues.ToArray(), serialNo);
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("未找到对应的电压数据。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
                 else
@@ -597,15 +632,22 @@ namespace upper_com
             MyButton button = sender as MyButton;
             if (button.IsPlaying)
             {
+
                 //MessageBox.Show("暂停");
                 this.myLED3.IsFlash = false;
                 this.myLED3.LedStatus = true;
                 this.myLED3.LedTrueColor = Color.Green;
                 // TODO PLC Test
-
-                // multimeterDetection.SetInputDate(inputData);
-                multimeterDetection.SetIsPlaying(false);
-                //_ = multimeterDetection.StartCollectingData();
+                if (plcDetection != null)
+                {
+                    plcDetection.SetPlaying(false);
+                }
+                if (multimeterDetection != null)
+                {
+                    // multimeterDetection.SetInputDate(inputData);
+                    multimeterDetection.SetIsPlaying(false);
+                    //_ = multimeterDetection.StartCollectingData();
+                }
             }
             else
             {
@@ -613,12 +655,21 @@ namespace upper_com
                 this.myLED3.IsFlash = true;
                 this.myLED3.LedStatus = true;
                 this.myLED3.LedTrueColor = Color.Green;
-                // TODO PLC Test
-                /* multimeterDetection.SetInputDate(inputData);
-                 multimeterDetection.SetIsPlaying(true);
-                 _ = multimeterDetection.StartCollectingData();*/
 
-                _ = multimeterDetection.TestData();
+                if (plcDetection != null)
+                {
+                    plcDetection.SetPlaying(true);
+                }
+
+                // TODO PLC Test
+                if (multimeterDetection != null)
+                {
+                    /*multimeterDetection.SetInputDate(inputData);
+                    multimeterDetection.SetIsPlaying(true);
+                    _ = multimeterDetection.StartCollectingData();*/
+
+                    _ = multimeterDetection.TestData();
+                }
             }
         }
 
@@ -635,7 +686,7 @@ namespace upper_com
             {
                 MessageBox.Show("请输入正确的IP地址！！！");
             }
-            PLCDetection plcDetection = new PLCDetection(ipAddress, multimeterDetection, this.myLED1);
+            plcDetection = new PLCDetection(ipAddress, multimeterDetection, this.myLED1);
             _ = plcDetection.PlcConn();
         }
 
@@ -664,48 +715,6 @@ namespace upper_com
                 return true;
             }
             return false;
-        }
-
-        ChartForm chartFormForVoltage;
-        private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex >= 0) // 确保点击的是有效行
-            {
-                // 从选中的行中获取数据
-                DataGridViewRow row = dataGridView2.Rows[e.RowIndex];
-
-                // 检查第一列的值是否为 null
-                if (row.Cells[0].Value != null)
-                {
-                    string serialNo = row.Cells[0].Value.ToString(); // 假设第一列是 serialNo
-
-                    // 从 Excel 文件中加载相应的电压值
-                    List<double> voltageValues = LoadVoltageValuesFromExcel(serialNo);
-
-                    if (voltageValues.Count > 0)
-                    {
-                        if (chartFormForVoltage == null || chartFormForVoltage.IsDisposed)
-                        {
-                            // 创建并显示新的ChartForm
-                            chartFormForVoltage = new ChartForm(voltageValues.ToArray());
-                            chartFormForVoltage.Show();
-                        }
-                        else
-                        {
-                            // 如果ChartForm已经打开，可以选择将其置于前台
-                            chartFormForVoltage.BringToFront();
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("未找到对应的电压数据。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("该行的序列号为空。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
         }
 
         private List<double> LoadVoltageValuesFromExcel(string serialNo)

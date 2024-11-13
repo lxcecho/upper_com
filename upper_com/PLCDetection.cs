@@ -13,7 +13,7 @@ namespace upper_com
         private MyLED myLED1;
         private bool isPlaying;
 
-        public PLCDetection(bool isPlaying)
+        public void SetPlaying(bool isPlaying)
         {
             this.isPlaying = isPlaying;
         }

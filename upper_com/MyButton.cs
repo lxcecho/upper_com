@@ -16,7 +16,7 @@ namespace upper_com
         public MyButton()
         {
             InitializeComponent();
-            this.Enabled = true; // 初始状态为禁用
+            this.Enabled = true; // 初始状态为启用
         }
 
         private bool isPlaying = false;
@@ -72,8 +72,29 @@ namespace upper_com
         {
             if (this.Enabled) // 仅当按钮启用时才处理点击事件
             {
-                base.OnClick(e);
-                IsPlaying = !IsPlaying; // 切换状态
+                if (IsPlaying)
+                {
+                    // 仅在暂停状态时弹出提示框
+                    DialogResult result = MessageBox.Show("你确定要暂停采集吗？暂定采集不会断开设备连接，但此时如果设备上报数据，此时不会做任何处理，请谨慎选择", "Confirmation", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+
+                    // 检查用户是否点击了 "OK"
+                    if (result == DialogResult.OK)
+                    {
+                        base.OnClick(e);
+                        IsPlaying = !IsPlaying; // 切换状态
+                    }
+                    else
+                    {
+                        // 用户点击了 "Cancel"，可以选择不执行任何操作或执行其他逻辑
+                        MessageBox.Show("暂停操作取消", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+                else
+                {
+                    // 如果当前是播放状态，直接切换状态
+                    base.OnClick(e);
+                    IsPlaying = !IsPlaying;
+                }
             }
         }
 

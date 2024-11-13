@@ -56,6 +56,14 @@ namespace upper_com
             this.valUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.volLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.serialNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.curDate = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.smoothLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.mutationLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.connPlcBtn = new System.Windows.Forms.Button();
             this.plcIp = new upper_com.IpInputControl();
             this.label2 = new System.Windows.Forms.Label();
@@ -71,14 +79,6 @@ namespace upper_com
             this.nLabel = new System.Windows.Forms.Label();
             this.k_value = new System.Windows.Forms.TextBox();
             this.n_value = new System.Windows.Forms.TextBox();
-            this.serialNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.curDate = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.smoothAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.smoothUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.smoothLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.mutationAverage = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.mutationUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.mutationLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -150,6 +150,7 @@ namespace upper_com
             this.volLower});
             this.dataGridView2.Location = new System.Drawing.Point(0, 338);
             this.dataGridView2.Name = "dataGridView2";
+            this.dataGridView2.ReadOnly = true;
             this.dataGridView2.RowHeadersWidth = 51;
             this.dataGridView2.RowTemplate.Height = 27;
             this.dataGridView2.Size = new System.Drawing.Size(1093, 364);
@@ -164,6 +165,7 @@ namespace upper_com
             this.curNo.HeaderText = "电流测试编号";
             this.curNo.MinimumWidth = 6;
             this.curNo.Name = "curNo";
+            this.curNo.ReadOnly = true;
             // 
             // valtageTransformSignal
             // 
@@ -173,6 +175,7 @@ namespace upper_com
             this.valtageTransformSignal.HeaderText = "压力传送信号";
             this.valtageTransformSignal.MinimumWidth = 6;
             this.valtageTransformSignal.Name = "valtageTransformSignal";
+            this.valtageTransformSignal.ReadOnly = true;
             // 
             // voltage1
             // 
@@ -182,6 +185,7 @@ namespace upper_com
             this.voltage1.HeaderText = "压力值V1";
             this.voltage1.MinimumWidth = 6;
             this.voltage1.Name = "voltage1";
+            this.voltage1.ReadOnly = true;
             // 
             // valAverage
             // 
@@ -191,6 +195,7 @@ namespace upper_com
             this.valAverage.HeaderText = "压力均值";
             this.valAverage.MinimumWidth = 6;
             this.valAverage.Name = "valAverage";
+            this.valAverage.ReadOnly = true;
             // 
             // valUpper
             // 
@@ -200,6 +205,7 @@ namespace upper_com
             this.valUpper.HeaderText = "压力上限";
             this.valUpper.MinimumWidth = 6;
             this.valUpper.Name = "valUpper";
+            this.valUpper.ReadOnly = true;
             // 
             // volLower
             // 
@@ -209,6 +215,7 @@ namespace upper_com
             this.volLower.HeaderText = "压力下限";
             this.volLower.MinimumWidth = 6;
             this.volLower.Name = "volLower";
+            this.volLower.ReadOnly = true;
             // 
             // dataGridView1
             // 
@@ -234,12 +241,93 @@ namespace upper_com
             this.dataGridView1.Location = new System.Drawing.Point(0, 0);
             this.dataGridView1.Margin = new System.Windows.Forms.Padding(4);
             this.dataGridView1.Name = "dataGridView1";
+            this.dataGridView1.ReadOnly = true;
             this.dataGridView1.RowHeadersWidth = 51;
             this.dataGridView1.RowTemplate.Height = 23;
             this.dataGridView1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.dataGridView1.Size = new System.Drawing.Size(1092, 336);
             this.dataGridView1.TabIndex = 0;
             this.dataGridView1.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellContentClick);
+            // 
+            // serialNo
+            // 
+            this.serialNo.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.serialNo.DefaultCellStyle = dataGridViewCellStyle9;
+            this.serialNo.HeaderText = "测试编号";
+            this.serialNo.MinimumWidth = 6;
+            this.serialNo.Name = "serialNo";
+            this.serialNo.ReadOnly = true;
+            // 
+            // curDate
+            // 
+            this.curDate.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.curDate.DefaultCellStyle = dataGridViewCellStyle10;
+            this.curDate.HeaderText = "时间";
+            this.curDate.MinimumWidth = 6;
+            this.curDate.Name = "curDate";
+            this.curDate.ReadOnly = true;
+            // 
+            // smoothAverage
+            // 
+            this.smoothAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.smoothAverage.DefaultCellStyle = dataGridViewCellStyle11;
+            this.smoothAverage.HeaderText = "I1均值";
+            this.smoothAverage.MinimumWidth = 6;
+            this.smoothAverage.Name = "smoothAverage";
+            this.smoothAverage.ReadOnly = true;
+            // 
+            // smoothUpper
+            // 
+            this.smoothUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.smoothUpper.DefaultCellStyle = dataGridViewCellStyle12;
+            this.smoothUpper.HeaderText = "I1上限";
+            this.smoothUpper.MinimumWidth = 6;
+            this.smoothUpper.Name = "smoothUpper";
+            this.smoothUpper.ReadOnly = true;
+            // 
+            // smoothLower
+            // 
+            this.smoothLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle13.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.smoothLower.DefaultCellStyle = dataGridViewCellStyle13;
+            this.smoothLower.HeaderText = "I1下限";
+            this.smoothLower.MinimumWidth = 6;
+            this.smoothLower.Name = "smoothLower";
+            this.smoothLower.ReadOnly = true;
+            // 
+            // mutationAverage
+            // 
+            this.mutationAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle14.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.mutationAverage.DefaultCellStyle = dataGridViewCellStyle14;
+            this.mutationAverage.HeaderText = "I2均值";
+            this.mutationAverage.MinimumWidth = 6;
+            this.mutationAverage.Name = "mutationAverage";
+            this.mutationAverage.ReadOnly = true;
+            // 
+            // mutationUpper
+            // 
+            this.mutationUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle15.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.mutationUpper.DefaultCellStyle = dataGridViewCellStyle15;
+            this.mutationUpper.HeaderText = "I2上限";
+            this.mutationUpper.MinimumWidth = 6;
+            this.mutationUpper.Name = "mutationUpper";
+            this.mutationUpper.ReadOnly = true;
+            // 
+            // mutationLower
+            // 
+            this.mutationLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle16.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.mutationLower.DefaultCellStyle = dataGridViewCellStyle16;
+            this.mutationLower.HeaderText = "I2下限";
+            this.mutationLower.MinimumWidth = 6;
+            this.mutationLower.Name = "mutationLower";
+            this.mutationLower.ReadOnly = true;
             // 
             // connPlcBtn
             // 
@@ -331,7 +419,7 @@ namespace upper_com
             this.inputTextBox.Location = new System.Drawing.Point(22, 406);
             this.inputTextBox.Multiline = true;
             this.inputTextBox.Name = "inputTextBox";
-            this.inputTextBox.Size = new System.Drawing.Size(330, 149);
+            this.inputTextBox.Size = new System.Drawing.Size(330, 118);
             this.inputTextBox.TabIndex = 23;
             this.inputTextBox.Text = "请用英文括号和英文逗号分隔，如:(500,1000),(600, 2000)";
             this.inputTextBox.Enter += new System.EventHandler(this.InputTextBox_Enter);
@@ -433,78 +521,6 @@ namespace upper_com
             this.n_value.Size = new System.Drawing.Size(197, 25);
             this.n_value.TabIndex = 3;
             this.n_value.Text = "20";
-            // 
-            // serialNo
-            // 
-            this.serialNo.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.serialNo.DefaultCellStyle = dataGridViewCellStyle9;
-            this.serialNo.HeaderText = "测试编号";
-            this.serialNo.MinimumWidth = 6;
-            this.serialNo.Name = "serialNo";
-            // 
-            // curDate
-            // 
-            this.curDate.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.curDate.DefaultCellStyle = dataGridViewCellStyle10;
-            this.curDate.HeaderText = "时间";
-            this.curDate.MinimumWidth = 6;
-            this.curDate.Name = "curDate";
-            // 
-            // smoothAverage
-            // 
-            this.smoothAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.smoothAverage.DefaultCellStyle = dataGridViewCellStyle11;
-            this.smoothAverage.HeaderText = "I1均值";
-            this.smoothAverage.MinimumWidth = 6;
-            this.smoothAverage.Name = "smoothAverage";
-            // 
-            // smoothUpper
-            // 
-            this.smoothUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.smoothUpper.DefaultCellStyle = dataGridViewCellStyle12;
-            this.smoothUpper.HeaderText = "I1上限";
-            this.smoothUpper.MinimumWidth = 6;
-            this.smoothUpper.Name = "smoothUpper";
-            // 
-            // smoothLower
-            // 
-            this.smoothLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle13.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.smoothLower.DefaultCellStyle = dataGridViewCellStyle13;
-            this.smoothLower.HeaderText = "I1下限";
-            this.smoothLower.MinimumWidth = 6;
-            this.smoothLower.Name = "smoothLower";
-            // 
-            // mutationAverage
-            // 
-            this.mutationAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle14.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.mutationAverage.DefaultCellStyle = dataGridViewCellStyle14;
-            this.mutationAverage.HeaderText = "I2均值";
-            this.mutationAverage.MinimumWidth = 6;
-            this.mutationAverage.Name = "mutationAverage";
-            // 
-            // mutationUpper
-            // 
-            this.mutationUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle15.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.mutationUpper.DefaultCellStyle = dataGridViewCellStyle15;
-            this.mutationUpper.HeaderText = "I2上限";
-            this.mutationUpper.MinimumWidth = 6;
-            this.mutationUpper.Name = "mutationUpper";
-            // 
-            // mutationLower
-            // 
-            this.mutationLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle16.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.mutationLower.DefaultCellStyle = dataGridViewCellStyle16;
-            this.mutationLower.HeaderText = "I2下限";
-            this.mutationLower.MinimumWidth = 6;
-            this.mutationLower.Name = "mutationLower";
             // 
             // DataDetection
             // 
