@@ -135,7 +135,7 @@ namespace upper_com
                 {
                     // 发送查询命令
 
-                    // 设置挡位，自动调整量程
+                    /*// 设置挡位，自动调整量程
                     mbSession.RawIO.Write("CONF:CURR:DC AUTO");
                     // 如果需要确认命令执行，可以发送查询命令
                     mbSession.RawIO.Write("*OPC?\n"); // 查询操作完成
@@ -144,7 +144,11 @@ namespace upper_com
                     {
                         // 设置触发源为立即触发
                         mbSession.RawIO.Write("TRIG:SOUR IMM");
-                    }
+                    }*/
+
+                    mbSession.RawIO.Write("DISPlay 0");
+                    mbSession.RawIO.Write("CURRent:DC:RANGe 0.2");
+                    mbSession.RawIO.Write("CURRent:DC:NPLC F");
                 }
                 else
                 {

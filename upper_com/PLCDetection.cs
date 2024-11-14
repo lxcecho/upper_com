@@ -13,9 +13,18 @@ namespace upper_com
         private MyLED myLED1;
         private bool isPlaying;
 
+        Plc plc;
+
+        public bool Connected { get; set; }
+
         public void SetPlaying(bool isPlaying)
         {
             this.isPlaying = isPlaying;
+        }
+
+        public PLCDetection()
+        {
+
         }
 
         public PLCDetection(string plcIp, MultimeterDetection multimeterDetection, MyLED myLED1)
@@ -24,6 +33,67 @@ namespace upper_com
             this.multimeterDetection = multimeterDetection;
             this.myLED1 = myLED1;
         }
+
+        /// <summary>
+        /// 打开连接，设置监控值
+        /// </summary>
+        /// <param name="MonitorData">开始地址，长度</param>
+        /// <returns></returns>
+        public string Open()
+        {
+            try
+            {
+                plc = new Plc(CpuType.S71500, plcIp, 0, 1);
+                plc.Open();
+                Connected = true;
+
+                Console.WriteLine("PLC 连接成功...");
+                // TODO LED 灯要变绿
+                this.myLED1.IsFlash = false;
+                this.myLED1.LedStatus = true;
+                this.myLED1.LedTrueColor = Color.Green;
+
+                return "已连接";
+            }
+            catch (Exception ex)
+            {
+                this.myLED1.IsFlash = false;
+                this.myLED1.LedStatus = true;
+                this.myLED1.LedTrueColor = Color.DimGray;
+                Console.WriteLine($"Error: {ex.Message}");
+                MessageBox.Show("PLC 连接失败！！！");
+                return ex.Message;
+            }
+        }
+
+        public bool Read(int db, int startAdd, int len, out byte[] deviceValue)
+        {
+            deviceValue = new byte[len];
+            try
+            {
+                deviceValue = plc.ReadBytes(DataType.DataBlock, db, startAdd, len);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Connected = false;
+                return false;
+            }
+        }
+
+        public string Write(string deviceName, object deviceValue)
+        {
+            try
+            {
+                plc.Write(deviceName, deviceValue);
+                return "0";
+            }
+            catch (Exception ex)
+            {
+                return "-1";
+            }
+        }
+
 
         public async Task PlcConn()
         {

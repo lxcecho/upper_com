@@ -105,6 +105,13 @@ namespace upper_com
             }
         }
 
+        // 验证输入格式的简单方法
+        private bool ValidateInput(string input)
+        {
+            // 使用正则表达式验证格式 (500,1000)
+            return Regex.IsMatch(input, @"^\(\d+,\d+\)$");
+        }
+
         private void syncBtn_Click(object sender, EventArgs e)
         {
             if (inputTextBox.Text == placeholderText || string.IsNullOrWhiteSpace(inputTextBox.Text))
@@ -116,7 +123,7 @@ namespace upper_com
             string input = inputTextBox.Text.Trim();
 
             // 验证输入格式是否正确
-            if (IsValidInput(input))
+            if (ValidateInput(input))
             {
                 // 生成15个相同的数据对，以逗号分隔
                 StringBuilder result = new StringBuilder();
@@ -137,13 +144,6 @@ namespace upper_com
             {
                 MessageBox.Show("请输入正确格式的数据，例如：(500,1000)");
             }
-        }
-
-        // 验证输入格式的简单方法
-        private bool IsValidInput(string input)
-        {
-            // 使用正则表达式验证格式 (500,1000)
-            return Regex.IsMatch(input, @"^\(\d+,\d+\)$");
         }
 
         private void LoadData()
@@ -506,7 +506,7 @@ namespace upper_com
             }
         }
 
-        private ChartForm chartFormForVoltage；
+        private ChartForm chartFormForVoltage;
         private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0) // 确保点击的是有效行
@@ -601,33 +601,46 @@ namespace upper_com
 
             dataQueue.Clear();
 
-            var pairs = inputDataTime.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            // 去掉所有空格
+            inputDataTime = inputDataTime.Replace(" ", "");
+
+            // 按照 "),(" 分割字符串
+            var pairs = inputDataTime.Split(new[] { "),(" }, StringSplitOptions.RemoveEmptyEntries);
 
             foreach (var pair in pairs)
             {
-                var trimmedPair = pair.Trim();
-                if (IsValidInput(trimmedPair))
+                // 去掉可能的前后括号
+                var cleanedPair = pair.Trim('(', ')');
+
+                if (IsValidInput(cleanedPair))
                 {
-                    var numbers = trimmedPair.Trim('(', ')').Split(',');
+                    var numbers = cleanedPair.Split(',');
                     int start = int.Parse(numbers[0]);
                     int duration = int.Parse(numbers[1]);
                     dataQueue.Enqueue((start, duration));
                 }
                 else
                 {
-                    MessageBox.Show($"Invalid input format: {trimmedPair}");
+                    MessageBox.Show($"Invalid input format: ({cleanedPair})");
                 }
             }
             return dataQueue;
         }
 
+        // 验证输入格式的简单方法
+        private bool IsValidInput(string input)
+        {
+            // 使用正则表达式验证格式 500,1000
+            return Regex.IsMatch(input, @"^\d+,\d+$");
+        }
+
         private void myBtn_Click(object sender, EventArgs e)
         {
             // 1. 参数校验
-            /*InputData inputData = new InputData();
+            InputData inputData = new InputData();
             inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
             inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
-            inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim()); ;*/
+            inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim()); ;
 
             MyButton button = sender as MyButton;
             if (button.IsPlaying)
@@ -664,11 +677,11 @@ namespace upper_com
                 // TODO PLC Test
                 if (multimeterDetection != null)
                 {
-                    /*multimeterDetection.SetInputDate(inputData);
+                    multimeterDetection.SetInputDate(inputData);
                     multimeterDetection.SetIsPlaying(true);
-                    _ = multimeterDetection.StartCollectingData();*/
+                    _ = multimeterDetection.StartCollectingData();
 
-                    _ = multimeterDetection.TestData();
+                    // _ = multimeterDetection.TestData();
                 }
             }
         }
