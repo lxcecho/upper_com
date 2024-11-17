@@ -17,6 +17,7 @@ using System.Windows.Forms.DataVisualization.Charting;
 using Org.BouncyCastle.Bcpg.Sig;
 using NPOI.SS.Formula.Functions;
 using Microsoft.Office.Interop.Excel;
+using static OfficeOpenXml.ExcelErrorValue;
 
 namespace upper_com
 {
@@ -56,12 +57,59 @@ namespace upper_com
             // 程序启动时加载数据
             LoadData();
 
-            StartServerInBackground();
+            dataGridView1.CellContentClick += dataGridView1_CellContentClick;
+            dataGridView2.CellContentClick += dataGridView2_CellContentClick;
+
+            //StartServerInBackground();
 
             //new VisaCommunication().Test("192.168.1.25");
         }
 
-        private void StartServerInBackground()
+        #region 控件自适应窗口大小
+        private void setTag(Control cons)
+        {
+            foreach (Control con in cons.Controls)
+            {
+                con.Tag = con.Width + ":" + con.Height + ":" + con.Left + ":" + con.Top + ":" + con.Font.Size;
+                if (con.Controls.Count > 0)
+                    setTag(con);
+            }
+        }
+
+        private void setControls(float newx, float newy, Control cons)
+        {
+            foreach (Control con in cons.Controls)
+            {
+                string[] mytag = con.Tag.ToString().Split(new char[] { ':' });
+                float a = Convert.ToSingle(mytag[0]) * newx;
+                con.Width = (int)a;
+                a = Convert.ToSingle(mytag[1]) * newy;
+                con.Height = (int)(a);
+                a = Convert.ToSingle(mytag[2]) * newx;
+                con.Left = (int)(a);
+                a = Convert.ToSingle(mytag[3]) * newy;
+                con.Top = (int)(a);
+                Single currentSize = Convert.ToSingle(mytag[4]) * newy;
+                con.Font = new System.Drawing.Font(con.Font.Name, currentSize, con.Font.Style, con.Font.Unit);
+                if (con.Controls.Count > 0)
+                {
+                    setControls(newx, newy, con);
+                }
+            }
+        }
+
+        void Form1_Resize(object sender, EventArgs e)
+        {
+            // throw new Exception("The method or operation is not implemented.");
+            float newx = (this.Width) / X;
+            //  float newy = (this.Height - this.statusStrip1.Height) / (Y - y);
+            float newy = this.Height / Y;
+            setControls(newx, newy, this);
+            this.Text = this.Width.ToString() + " " + this.Height.ToString();
+        }
+        #endregion
+
+        /*private void StartServerInBackground()
         {
             // 创建并启动一个后台任务来运行服务器
             Task.Run(async () =>
@@ -70,11 +118,6 @@ namespace upper_com
                 {
                     multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1);
                     await multimeterDetection.SendConfigCommand();
-                    // 在客户端连接成功后启用按钮
-                    /*this.Invoke((Action)(() =>
-                    {
-                        myBtn.Enabled = true;
-                    }));*/
                 }
                 catch (Exception ex)
                 {
@@ -85,7 +128,7 @@ namespace upper_com
                     }));
                 }
             });
-        }
+        }*/
 
         private void InputTextBox_Enter(object sender, EventArgs e)
         {
@@ -112,40 +155,6 @@ namespace upper_com
             return Regex.IsMatch(input, @"^\(\d+,\d+\)$");
         }
 
-        private void syncBtn_Click(object sender, EventArgs e)
-        {
-            if (inputTextBox.Text == placeholderText || string.IsNullOrWhiteSpace(inputTextBox.Text))
-            {
-                MessageBox.Show("请输入数据。");
-                return;
-            }
-
-            string input = inputTextBox.Text.Trim();
-
-            // 验证输入格式是否正确
-            if (ValidateInput(input))
-            {
-                // 生成15个相同的数据对，以逗号分隔
-                StringBuilder result = new StringBuilder();
-                for (int i = 0; i < 15; i++)
-                {
-                    result.Append(input);
-                    if (i < 14) // 在最后一个数据对后不添加逗号
-                    {
-                        result.Append(", ");
-                    }
-                }
-
-                // 显示结果
-                inputTextBox.Text = result.ToString();
-                inputTextBox.ForeColor = Color.Black;
-            }
-            else
-            {
-                MessageBox.Show("请输入正确格式的数据，例如：(500,1000)");
-            }
-        }
-
         private void LoadData()
         {
             LoadLatestCurrentDataToDataGridView();
@@ -169,6 +178,7 @@ namespace upper_com
                 }
             }
         }
+
         private void UpdateCurrentDataGridView()
         {
             // 清除现有数据
@@ -265,161 +275,6 @@ namespace upper_com
             }
         }
 
-        private async void UpdateVoltagetData(VoltageData voltageData)
-        {
-            if (this.dataGridView2.InvokeRequired)
-            {
-                // 先更新DataGridView
-                this.dataGridView2.Invoke((MethodInvoker)delegate
-                {
-                    AddVoltageDataToGridView(voltageData);
-                });
-            }
-            else
-            {
-                AddVoltageDataToGridView(voltageData);
-            }
-
-            // 异步写入文件
-            await Task.Run(() => WriteVoltageDataToFile(voltageData));
-        }
-
-        private void AddVoltageDataToGridView(VoltageData voltageData)
-        {
-            // 更新 DataGridView
-            this.dataGridView1.Rows.Add(voltageData.GetCurrentNo(), voltageData.GetVoltageTransformSignal());
-            if (this.dataGridView2.Rows.Count > 15)
-            {
-                this.dataGridView2.Rows.RemoveAt(0);
-            }
-        }
-
-        private void WriteVoltageDataToFile(VoltageData voltageData)
-        {
-            lock (voltageFileLock)
-            {
-                try
-                {
-                    IWorkbook workbook;
-                    ISheet sheet;
-
-                    if (!File.Exists(voltageFilePath))
-                    {
-                        workbook = new XSSFWorkbook();
-                        sheet = workbook.CreateSheet("Sheet1");
-
-                        // 写入标题行
-                        IRow headerRow = sheet.CreateRow(0);
-                        headerRow.CreateCell(0).SetCellValue("电流测试编号");
-                        headerRow.CreateCell(1).SetCellValue("压力传送信号");
-                        headerRow.CreateCell(2).SetCellValue("压力值V");
-                        headerRow.CreateCell(3).SetCellValue("压力均值");
-                        headerRow.CreateCell(4).SetCellValue("压力上限");
-                        headerRow.CreateCell(5).SetCellValue("压力下限");
-                    }
-                    else
-                    {
-                        // 打开现有文件并追加数据
-                        using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        {
-                            workbook = new XSSFWorkbook(fs);
-                            sheet = workbook.GetSheetAt(0);
-                        }
-                    }
-
-                    // 找到最后一行
-                    int lastRowNum = sheet.LastRowNum;
-                    IRow newRow = sheet.CreateRow(lastRowNum + 1);
-                    // 追加数据
-                    newRow.CreateCell(0).SetCellValue(voltageData.GetCurrentNo());
-                    newRow.CreateCell(1).SetCellValue(voltageData.GetVoltageTransformSignal());
-                    //newRow.CreateCell(2).SetCellValue(voltageData.GetSmoothCur());
-                    //newRow.CreateCell(3).SetCellValue(voltageData.GetSmoothAverage());
-
-                    // 写入文件
-                    using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                    {
-                        workbook.Write(fs);
-                    }
-                }
-                catch (IOException ex)
-                {
-                    MessageBox.Show($"文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-
-
-        #region 控件自适应窗口大小
-        private void setTag(Control cons)
-        {
-            foreach (Control con in cons.Controls)
-            {
-                con.Tag = con.Width + ":" + con.Height + ":" + con.Left + ":" + con.Top + ":" + con.Font.Size;
-                if (con.Controls.Count > 0)
-                    setTag(con);
-            }
-        }
-
-        private void setControls(float newx, float newy, Control cons)
-        {
-            foreach (Control con in cons.Controls)
-            {
-                string[] mytag = con.Tag.ToString().Split(new char[] { ':' });
-                float a = Convert.ToSingle(mytag[0]) * newx;
-                con.Width = (int)a;
-                a = Convert.ToSingle(mytag[1]) * newy;
-                con.Height = (int)(a);
-                a = Convert.ToSingle(mytag[2]) * newx;
-                con.Left = (int)(a);
-                a = Convert.ToSingle(mytag[3]) * newy;
-                con.Top = (int)(a);
-                Single currentSize = Convert.ToSingle(mytag[4]) * newy;
-                con.Font = new System.Drawing.Font(con.Font.Name, currentSize, con.Font.Style, con.Font.Unit);
-                if (con.Controls.Count > 0)
-                {
-                    setControls(newx, newy, con);
-                }
-            }
-        }
-
-        void Form1_Resize(object sender, EventArgs e)
-        {
-            // throw new Exception("The method or operation is not implemented.");
-            float newx = (this.Width) / X;
-            //  float newy = (this.Height - this.statusStrip1.Height) / (Y - y);
-            float newy = this.Height / Y;
-            setControls(newx, newy, this);
-            this.Text = this.Width.ToString() + " " + this.Height.ToString();
-        }
-        #endregion
-
-        private void splitContainer1_Panel1_Paint(object sender, PaintEventArgs e)
-        {
-
-        }
-
-        private void k_label_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void k_value_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        /// <summary>
-        /// 获取当前系统时间的方法
-        /// </summary>
-        /// <returns>当前时间</returns>
-        private DateTime GetCurrentTime()
-        {
-            DateTime currentTime = new DateTime();
-            currentTime = DateTime.Now;
-            return currentTime;
-        }
-
         /// <summary>
         /// 参数校验
         /// </summary>
@@ -438,31 +293,6 @@ namespace upper_com
             }
         }
 
-        /// <summary>
-        /// TODO 行填充
-        /// </summary>
-        /// <returns>TODO</returns>
-        private void AddItem(CurrentData currentData)
-        {
-            // 此处的代码不能进行循环！必须封装为一个方法，通过方法的循环，才能实现循环！
-            DataGridViewRow dgvr = new DataGridViewRow();
-            foreach (DataGridViewColumn c in this.dataGridView1.Columns)
-            {
-                dgvr.Cells.Add(c.CellTemplate.Clone() as DataGridViewCell);
-            }
-            dgvr.Cells[0].Value = currentData.GetSerialNo();
-            dgvr.Cells[1].Value = currentData.GetCurDate();
-            //dgvr.Cells[2].Value = currentData.GetSmoothCur();
-            dgvr.Cells[3].Value = currentData.GetSmoothAverage();
-            dgvr.Cells[4].Value = currentData.GetSmoothUpper();
-            dgvr.Cells[5].Value = currentData.GetSmoothLower();
-            //dgvr.Cells[6].Value = currentData.GetMutationCur();
-            dgvr.Cells[7].Value = currentData.GetMutationAverage();
-            dgvr.Cells[8].Value = currentData.GetMutationUpper();
-            dgvr.Cells[9].Value = currentData.GetMutationLower();
-            this.dataGridView1.Rows.Add(dgvr);
-        }
-
         private ChartForm chartFormForCurrent;
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -477,21 +307,42 @@ namespace upper_com
                 {
                     string serialNo = row.Cells[0].Value.ToString(); // 假设第一列是 serialNo
 
-                    // 从 Excel 文件中加载相应的电流值
-                    List<double> currentValues = LoadCurrentValuesFromExcel(serialNo);
+                    double[] xValues = new double[2];
 
-                    if (currentValues.Count > 0)
+                    // 从 Excel 文件中加载相应的电流值
+                    List<(double currentValue, double duration)> curs = LoadCurrentValuesFromExcelForSheet2(serialNo);
+
+                    List<double> values = new List<double>();
+                    List<double> durations = new List<double>();
+
+                    if (curs.Count > 0)
+                    {
+                        foreach (var (currentValue, duration) in curs)
+                        {
+                            values.Add(currentValue);
+                            durations.Add(duration);
+                            //Console.WriteLine($"Current Value: {currentValue}, Duration: {duration}");
+                        }
+                    }
+
+                    if (durations.Count > 0 && durations.Distinct().ToList().Count > 0)
+                    {
+                        xValues[0] = 0.0;
+                        xValues[1] = durations.Distinct().ToList()[0];
+                    }
+
+                    if (values.Count > 0)
                     {
                         if (chartFormForCurrent == null || chartFormForCurrent.IsDisposed)
                         {
                             // 创建并显示新的ChartForm
-                            chartFormForCurrent = new ChartForm(currentValues.ToArray(), serialNo);
+                            chartFormForCurrent = new ChartForm(xValues, values.ToArray(), serialNo);
                             chartFormForCurrent.Show();
                         }
                         else
                         {
                             // 更新现有的ChartForm的数据
-                            chartFormForCurrent.UpdateChart(currentValues.ToArray(), serialNo);
+                            chartFormForCurrent.UpdateChart(values.ToArray(), serialNo);
                         }
                     }
                     else
@@ -519,22 +370,40 @@ namespace upper_com
                 {
                     string serialNo = row.Cells[0].Value.ToString(); // 假设第一列是 serialNo
 
-                    // 从 Excel 文件中加载相应的电压值
-                    List<double> voltageValues = LoadVoltageValuesFromExcel(serialNo);
+                    List<double> values = new List<double>();
+                    List<double> durations = new List<double>();
+                    double[] xValues = new double[2];
 
-                    if (voltageValues.Count > 0)
+                    // 从 Excel 文件中加载相应的电压值
+                    List<(double currentValue, double duration)> vals = LoadVoltageValuesFromExcel(serialNo);
+
+                    foreach (var (vol, duration) in vals)
                     {
-                        
+                        values.Add(vol);
+                        durations.Add(duration);
+                        //Console.WriteLine($"Current Value: {vol}, Duration: {duration}");
+                    }
+
+
+                    if (durations.Count > 0)
+                    {
+                        xValues[0] = 0.0;
+                        xValues[1] = durations.Distinct().ToList()[0];
+                    }
+
+                    if (values.Count > 0)
+                    {
+
                         if (chartFormForVoltage == null || chartFormForVoltage.IsDisposed)
                         {
                             // 创建并显示新的ChartForm
-                            chartFormForVoltage = new ChartForm(voltageValues.ToArray(), serialNo);
+                            chartFormForVoltage = new ChartForm(/*xValues, */values.ToArray(), serialNo);
                             chartFormForVoltage.Show();
                         }
                         else
                         {
                             // 更新现有的ChartForm的数据
-                            chartFormForCurrent.UpdateChart(voltageValues.ToArray(), serialNo);
+                            chartFormForVoltage.UpdateChart(/*xValues, */values.ToArray(), serialNo);
                         }
                     }
                     else
@@ -549,9 +418,9 @@ namespace upper_com
             }
         }
 
-        private List<double> LoadCurrentValuesFromExcel(string serialNo)
+        private List<(double currentValue, double duration)> LoadCurrentValuesFromExcelForSheet2(string serialNo)
         {
-            List<double> currentValues = new List<double>();
+            var curs = new List<(double currentValue, double duration)>();
 
             lock (currentFileLock)
             {
@@ -575,9 +444,13 @@ namespace upper_com
                                         if (serialNoCell != null && serialNoCell.ToString() == serialNo)
                                         {
                                             ICell currentValueCell = row.GetCell(1);
-                                            if (currentValueCell != null && double.TryParse(currentValueCell.ToString(), out double currentValue))
+                                            ICell durationCell = row.GetCell(2);
+
+                                            if (currentValueCell != null && durationCell != null &&
+                                                double.TryParse(currentValueCell.ToString(), out double currentValue) &&
+                                                double.TryParse(durationCell.ToString(), out double duration))
                                             {
-                                                currentValues.Add(currentValue);
+                                                curs.Add((currentValue, duration));
                                             }
                                         }
                                     }
@@ -592,7 +465,56 @@ namespace upper_com
                 }
             }
 
-            return currentValues;
+            return curs;
+        }
+
+        private List<(double currentValue, double duration)> LoadVoltageValuesFromExcel(string serialNo)
+        {
+            List<(double currentValue, double duration)> voltageValues = new List<(double currentValue, double duration)>();
+
+            lock (voltageFileLock)
+            {
+                try
+                {
+                    if (File.Exists(voltageFilePath))
+                    {
+                        using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                        {
+                            IWorkbook workbook = new XSSFWorkbook(fs);
+                            ISheet sheet = workbook.GetSheet("Sheet2");
+
+                            if (sheet != null)
+                            {
+                                for (int i = 0; i <= sheet.LastRowNum; i++)
+                                {
+                                    IRow row = sheet.GetRow(i);
+                                    if (row != null)
+                                    {
+                                        ICell serialNoCell = row.GetCell(0);
+                                        if (serialNoCell != null && serialNoCell.ToString() == serialNo)
+                                        {
+                                            ICell voltageValueCell = row.GetCell(1);
+                                            ICell durationCell = row.GetCell(2);
+                                            if (voltageValueCell != null && durationCell != null
+                                                && double.TryParse(voltageValueCell.ToString(), out double voltageValue)
+                                                && double.TryParse(durationCell.ToString(), out double duration))
+                                            {
+                                                voltageValues.Add((voltageValue, duration));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (IOException ex)
+                {
+                    MessageBox.Show($"文件读取错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+
+            return voltageValues;
         }
 
         private Queue<(int start, int duration)> LoadTimerData(string inputDataTime)
@@ -636,71 +558,135 @@ namespace upper_com
 
         private void myBtn_Click(object sender, EventArgs e)
         {
-            // 1. 参数校验
+            MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
+            test.TestData();
+
+            PLCDetection testPlc = new PLCDetection(this.dataGridView2);
+            testPlc.TestData();
+
+            /*// 1. 参数校验
             InputData inputData = new InputData();
             inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
             inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
-            inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim()); ;
+            inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
 
-            MyButton button = sender as MyButton;
-            if (button.IsPlaying)
+            // 要两个服务端都连接上才能进行开始采集数据
+            if (multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
             {
+                MyButton button = sender as MyButton;
 
-                //MessageBox.Show("暂停");
-                this.myLED3.IsFlash = false;
-                this.myLED3.LedStatus = true;
-                this.myLED3.LedTrueColor = Color.Green;
-                // TODO PLC Test
-                if (plcDetection != null)
+                if (button.IsPlaying)
                 {
-                    plcDetection.SetPlaying(false);
+                    //MessageBox.Show("暂停");
+                    this.myLED3.IsFlash = false;
+                    this.myLED3.LedStatus = true;
+                    this.myLED3.LedTrueColor = Color.Green;
+
+                    // TODO PLC Test
+                    if (plcDetection != null)
+                    {
+                        plcDetection.SetPlaying(false);
+                    }
+
+                    if (multimeterDetection != null)
+                    {
+                        // multimeterDetection.SetInputDate(inputData);
+                        multimeterDetection.SetIsPlaying(false);
+                        //_ = multimeterDetection.StartCollectingData();
+                    }
                 }
-                if (multimeterDetection != null)
+                else
                 {
-                    // multimeterDetection.SetInputDate(inputData);
-                    multimeterDetection.SetIsPlaying(false);
-                    //_ = multimeterDetection.StartCollectingData();
+                    //MessageBox.Show("开始");
+                    this.myLED3.IsFlash = true;
+                    this.myLED3.LedStatus = true;
+                    this.myLED3.LedTrueColor = Color.Green;
+
+                    if (plcDetection != null)
+                    {
+                        plcDetection.SetPlaying(true);
+                        plcDetection.SetInputDate(inputData);
+                        _ = plcDetection.PlcListenerHandler();
+                    }
+
+                    // TODO PLC Test
+                    if (multimeterDetection != null)
+                    {
+                        multimeterDetection.SetInputDate(inputData);
+                        multimeterDetection.SetIsPlaying(true);
+                        _ = multimeterDetection.MultimeterListenerHandler();
+                    }
                 }
+            }*/
+        }
+
+        private void syncBtn_Click(object sender, EventArgs e)
+        {
+            if (inputTextBox.Text == placeholderText || string.IsNullOrWhiteSpace(inputTextBox.Text))
+            {
+                MessageBox.Show("请输入数据。");
+                return;
+            }
+
+            string input = inputTextBox.Text.Trim();
+
+            // 验证输入格式是否正确
+            if (ValidateInput(input))
+            {
+                // 生成15个相同的数据对，以逗号分隔
+                StringBuilder result = new StringBuilder();
+                for (int i = 0; i < 15; i++)
+                {
+                    result.Append(input);
+                    if (i < 14) // 在最后一个数据对后不添加逗号
+                    {
+                        result.Append(", ");
+                    }
+                }
+
+                // 显示结果
+                inputTextBox.Text = result.ToString();
+                inputTextBox.ForeColor = Color.Black;
             }
             else
             {
-                //MessageBox.Show("开始");
-                this.myLED3.IsFlash = true;
-                this.myLED3.LedStatus = true;
-                this.myLED3.LedTrueColor = Color.Green;
-
-                if (plcDetection != null)
-                {
-                    plcDetection.SetPlaying(true);
-                }
-
-                // TODO PLC Test
-                if (multimeterDetection != null)
-                {
-                    multimeterDetection.SetInputDate(inputData);
-                    multimeterDetection.SetIsPlaying(true);
-                    _ = multimeterDetection.StartCollectingData();
-
-                    // _ = multimeterDetection.TestData();
-                }
+                MessageBox.Show("请输入正确格式的数据，例如：(500,1000)");
             }
         }
 
-        private void myLED1_Load(object sender, EventArgs e)
+        private void connBtn_Click(object sender, EventArgs e)
         {
+            string plcIpAddress = this.plcIp.IpAddress;
+            string multimerIpAddress = this.pmultimerIp.IpAddress;
+            Console.WriteLine($"IP Address: {plcIpAddress}, {multimerIpAddress}");
 
-        }
-
-        private void connPlcBtn_Click(object sender, EventArgs e)
-        {
-            string ipAddress = this.plcIp.IpAddress;
-            Console.WriteLine($"IP Address: {ipAddress}");
-            if (string.IsNullOrWhiteSpace(ipAddress) || !IsValidIp(ipAddress))
+            if (string.IsNullOrWhiteSpace(plcIpAddress) || !IsValidIp(plcIpAddress))
             {
-                MessageBox.Show("请输入正确的IP地址！！！");
+                MessageBox.Show("请输入正确的PLC IP地址！！！");
+                return;
             }
-            plcDetection = new PLCDetection(ipAddress, multimeterDetection, this.myLED1);
-            _ = plcDetection.PlcConn();
+
+            if (string.IsNullOrWhiteSpace(multimerIpAddress) || !IsValidIp(multimerIpAddress))
+            {
+                MessageBox.Show("请输入正确的仪器IP地址！！！");
+                return;
+            }
+
+            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
+            if (multimeterDetection.MultimerOpen())
+            {
+                this.multimerLabel.Text = "万用表已连接!";
+                this.multimerLabel.ForeColor = Color.DarkOliveGreen;
+                // 连接成功之后，立即下发初始化指令
+                multimeterDetection.SendConfigCommand();
+            }
+
+            plcDetection = new PLCDetection(plcIpAddress, multimeterDetection, this.myLED1, this.dataGridView2);
+            if (plcDetection.PlcOpen())
+            {
+                this.plcLabel.Text = "PLC已连接!";
+                this.plcLabel.ForeColor = Color.DarkOliveGreen;
+            }
         }
 
         private bool IsValidIp(string ipAddress)
@@ -730,50 +716,5 @@ namespace upper_com
             return false;
         }
 
-        private List<double> LoadVoltageValuesFromExcel(string serialNo)
-        {
-            List<double> voltageValues = new List<double>();
-
-            lock (voltageFileLock)
-            {
-                try
-                {
-                    if (File.Exists(voltageFilePath))
-                    {
-                        using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        {
-                            IWorkbook workbook = new XSSFWorkbook(fs);
-                            ISheet sheet = workbook.GetSheet("Sheet2");
-
-                            if (sheet != null)
-                            {
-                                for (int i = 0; i <= sheet.LastRowNum; i++)
-                                {
-                                    IRow row = sheet.GetRow(i);
-                                    if (row != null)
-                                    {
-                                        ICell serialNoCell = row.GetCell(0);
-                                        if (serialNoCell != null && serialNoCell.ToString() == serialNo)
-                                        {
-                                            ICell voltageValueCell = row.GetCell(1);
-                                            if (voltageValueCell != null && double.TryParse(voltageValueCell.ToString(), out double voltageValue))
-                                            {
-                                                voltageValues.Add(voltageValue);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (IOException ex)
-                {
-                    MessageBox.Show($"文件读取错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-
-            return voltageValues;
-        }
     }
 }

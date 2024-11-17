@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 
@@ -41,9 +42,9 @@ namespace upper_com
             chartArea.AxisY.MajorGrid.Enabled = false;
 
             // 设置 X 轴为时间类型
-            chartArea.AxisX.LabelStyle.Format = "HH:mm:ss"; // 根据需要设置时间格式
-            chartArea.AxisX.IntervalType = DateTimeIntervalType.Seconds; // 根据需要设置时间间隔类型
-            chartArea.AxisX.Interval = 1; // 设置时间间隔
+            chartArea.AxisX.Minimum = xValues.Min();
+            chartArea.AxisX.Maximum = xValues.Max();
+            chartArea.AxisX.Interval = 0.1; // 设置间隔
 
             chart.ChartAreas.Add(chartArea);
 
@@ -62,7 +63,7 @@ namespace upper_com
             chart.Series.Add(series);
 
             // 自定义表格的名称
-            chart.Titles.Add("Custom Chart Title");
+            chart.Titles.Add("T曲线");
         }
 
         private void CreateChart(double[] yValues)
@@ -101,6 +102,20 @@ namespace upper_com
                 for (int i = 0; i < yValues.Length; i++)
                 {
                     series.Points.AddXY(i, yValues[i]);
+                }
+            }
+        }
+
+        public void UpdateChart(double[] xValues, double[] yValues, string title)
+        {
+            if (chart.Series.Count > 0)
+            {
+                this.Text = title;
+                Series series = chart.Series[0];
+                series.Points.Clear();
+                for (int i = 0; i < xValues.Length; i++)
+                {
+                    series.Points.AddXY(xValues[i], yValues[i]);
                 }
             }
         }

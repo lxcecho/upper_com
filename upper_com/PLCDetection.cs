@@ -3,19 +3,38 @@ using System.Threading.Tasks;
 using S7.Net;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace upper_com
 {
     internal class PLCDetection
     {
         private string plcIp;
+
         private MultimeterDetection multimeterDetection;
+
         private MyLED myLED1;
+
         private bool isPlaying;
 
-        Plc plc;
+        private DataGridView dataGridView2;
 
-        public bool Connected { get; set; }
+        private S7NetClient s7NetClient;
+
+        private VoltageDataQueue voltageDataQueue;
+
+        private InputData inputData;
+
+        public void SetInputDate(InputData data)
+        {
+            this.inputData = data;
+        }
+
+        public InputData GetInputData()
+        {
+            return this.inputData;
+        }
 
         public void SetPlaying(bool isPlaying)
         {
@@ -27,150 +46,169 @@ namespace upper_com
 
         }
 
-        public PLCDetection(string plcIp, MultimeterDetection multimeterDetection, MyLED myLED1)
+        public PLCDetection(DataGridView dataGridView2)
+        {
+            this.dataGridView2 = dataGridView2;
+        }
+
+        public PLCDetection(string plcIp, MultimeterDetection multimeterDetection, MyLED myLED1, DataGridView dataGridView2)
         {
             this.plcIp = plcIp;
             this.multimeterDetection = multimeterDetection;
             this.myLED1 = myLED1;
+            this.dataGridView2 = dataGridView2;
+
+            this.s7NetClient = new S7NetClient(this.plcIp);
         }
 
-        /// <summary>
-        /// 打开连接，设置监控值
-        /// </summary>
-        /// <param name="MonitorData">开始地址，长度</param>
-        /// <returns></returns>
-        public string Open()
+        public bool PlcOpen()
         {
-            try
-            {
-                plc = new Plc(CpuType.S71500, plcIp, 0, 1);
-                plc.Open();
-                Connected = true;
+            // 打开与 PLC 的连接
+            s7NetClient.Open();
 
+            if (s7NetClient.Connected)
+            {
                 Console.WriteLine("PLC 连接成功...");
                 // TODO LED 灯要变绿
                 this.myLED1.IsFlash = false;
                 this.myLED1.LedStatus = true;
                 this.myLED1.LedTrueColor = Color.Green;
-
-                return "已连接";
+                return true;
             }
-            catch (Exception ex)
+            else
             {
                 this.myLED1.IsFlash = false;
                 this.myLED1.LedStatus = true;
                 this.myLED1.LedTrueColor = Color.DimGray;
-                Console.WriteLine($"Error: {ex.Message}");
                 MessageBox.Show("PLC 连接失败！！！");
-                return ex.Message;
-            }
-        }
-
-        public bool Read(int db, int startAdd, int len, out byte[] deviceValue)
-        {
-            deviceValue = new byte[len];
-            try
-            {
-                deviceValue = plc.ReadBytes(DataType.DataBlock, db, startAdd, len);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Connected = false;
                 return false;
             }
+
         }
 
-        public string Write(string deviceName, object deviceValue)
+        public async Task PlcListenerHandler()
         {
             try
             {
-                plc.Write(deviceName, deviceValue);
-                return "0";
+                if (inputData != null)
+                {
+                    voltageDataQueue = new VoltageDataQueue(this.dataGridView2, inputData.Num, inputData.K);
+
+                    while (this.isPlaying && s7NetClient.Connected)
+                    {
+                        byte[] deviceValue;
+
+                        VoltageData all = new VoltageData();
+
+                        // Read Int at offset 0.0 (电流测试编号)
+                        if (s7NetClient.Read(1, 0, 2, out deviceValue))
+                        {
+                            int currentTestNumber = BitConverter.ToInt16(deviceValue, 0);
+                            Console.WriteLine("电流测试编号: " + currentTestNumber);
+
+                            all.currentNo = currentTestNumber;
+                            multimeterDetection.SetCurrentSerialNo(currentTestNumber);
+                        }
+
+                        // Read Bool at offset 2.0 (电流测试开始)
+                        if (s7NetClient.Read(1, 2, 1, out deviceValue))
+                        {
+                            bool currentTestStart = deviceValue[0] != 0;
+                            Console.WriteLine("电流测试开始: " + currentTestStart);
+                            all.currentStartSignal = currentTestStart;
+                            if (currentTestStart)
+                            {
+                                // 收到起始信号
+                                multimeterDetection.SetSignal(currentTestStart);
+                            }
+                        }
+
+                        // Read Bool at offset 2.1 (电流测试结束)
+                        if (s7NetClient.Read(1, 3, 1, out deviceValue))
+                        {
+                            bool currentTestEnd = deviceValue[0] != 0;
+                            Console.WriteLine("电流测试结束: " + currentTestEnd);
+                            all.currentEndSignal = currentTestEnd;
+                            if (currentTestEnd)
+                            {
+                                // TODO 停止收集万用表上报数据
+                                multimeterDetection.SetSignal(false);
+                            }
+                        }
+
+                        // Read Bool at offset 2.2 (压力传送结束)
+                        if (s7NetClient.Read(1, 4, 1, out deviceValue))
+                        {
+                            bool pressureTransferEnd = deviceValue[0] != 0;
+                            all.voltageTransformSignal = pressureTransferEnd;
+                            Console.WriteLine("压力传送结束: " + pressureTransferEnd);
+                        }
+
+                        List<double> voltageList = new List<double>();
+
+                        // Read Real values at offsets 4.0 to 60.0 (压力当前值1 to 压力当前值15)
+                        for (int i = 0; i < 15; i++)
+                        {
+                            int offset = 8 + i * 4;
+                            if (s7NetClient.Read(1, offset, 4, out deviceValue))
+                            {
+                                float pressureValue = BitConverter.ToSingle(deviceValue, 0);
+                                Console.WriteLine($"压力当前值{i + 1}: " + pressureValue);
+                                voltageList.Add(pressureValue);
+                            }
+                        }
+
+                        // TODO 处理压力数据
+                        if (voltageList != null && voltageList.Count > 0)
+                        {
+                            all.voltageList = voltageList;
+                        }
+
+                        // 总 T
+                        all.duration = multimeterDetection.T;
+
+                        double average = voltageList.Average();
+                        voltageDataQueue.AddData(average, all);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                return "-1";
+                Console.WriteLine($"Error: {ex.Message}");
             }
         }
 
-
-        public async Task PlcConn()
+        public async Task TestData()
         {
-            // 创建 PLC 连接对象，这里以西门子 S7-1200 为例
-            // 指定CPU类型、IP地址和机架、插槽号
-            // Plc plc = new Plc(CpuType.S7300, plcIp, 0, 2);
+            voltageDataQueue = new VoltageDataQueue(this.dataGridView2, 20, 3);
 
-            using (Plc plc = new Plc(CpuType.S7300, plcIp, 0, 2))
-            {
-                try
-                {
-                    // 打开与 PLC 的连接
-                    plc.Open();
+            List<double> voltageList = new List<double>();
 
-                    if (plc != null && plc.IsConnected)
-                    {
-                        Console.WriteLine("PLC 连接成功...");
-                        // TODO LED 灯要变绿
-                        this.myLED1.IsFlash = false;
-                        this.myLED1.LedStatus = true;
-                        this.myLED1.LedTrueColor = Color.Green;
+            VoltageData all = new VoltageData();
 
-                        while (true)
-                        {
-                            if (this.isPlaying)
-                            {
-                                // 读取起始信号
-                                bool startSignal = (bool)plc.Read("DB1.DBX0.0");
-                                if (startSignal)
-                                {
-                                    Console.WriteLine("收到起始信号");
-                                    // 收到起始信号
-                                    multimeterDetection.SetSignal(true);
-                                }
+            voltageList.Add(0.99877156E-03 * 3000);
+            voltageList.Add(0.89877156E-03 * 3000);
+            voltageList.Add(0.98877156E-03 * 3000);
+            voltageList.Add(0.79877156E-03 * 3000);
+            voltageList.Add(0.91877156E-03 * 3000);
+            voltageList.Add(0.92877156E-03 * 3000);
+            voltageList.Add(0.93877156E-03 * 3000);
+            voltageList.Add(0.89877156E-03 * 3000);
+            voltageList.Add(0.94877156E-03 * 3000);
+            voltageList.Add(0.90877156E-03 * 3000);
 
-                                // 读取终止信号
-                                bool stopSignal = (bool)plc.Read("DB1.DBX0.1");
-                                if (stopSignal)
-                                {
-                                    Console.WriteLine("收到终止信号");
-                                    // TODO 停止收集万用表上报数据
-                                    multimeterDetection.SetSignal(false);
-                                }
+            all.duration = 2.0;
 
-                                // 读取电流测试编号
-                                string currentSerialNo = (string)plc.Read("DB1.DBX0.0");
-                                multimeterDetection.SetCurrentSerialNo(currentSerialNo);
+            // 计算平稳段和突变段的平均值
+            double average = voltageList.Count > 0 ? voltageList.Average() : 0;
+            // 将所有数据都添加到 DataQueue
+            all.voltageList = voltageList;
+            all.currentNo = 1001;
+            all.currentStartSignal = true;
+            all.currentEndSignal = false;
+            all.voltageTransformSignal = true;
 
-                                // TODO 处理压力数据
-                            }
-
-                            // 等待一段时间再检查
-                            await Task.Delay(10);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    this.myLED1.IsFlash = false;
-                    this.myLED1.LedStatus = true;
-                    this.myLED1.LedTrueColor = Color.DimGray;
-                    Console.WriteLine($"Error: {ex.Message}");
-                    MessageBox.Show("PLC 连接失败！！！");
-                }
-                finally
-                {
-                    // 关闭与 PLC 的连接
-                    if (plc.IsConnected)
-                    {
-                        this.myLED1.IsFlash = false;
-                        this.myLED1.LedStatus = true;
-                        this.myLED1.LedTrueColor = Color.DimGray;
-                        plc.Close();
-                        Console.WriteLine("PLC 连接关闭...");
-                    }
-                }
-            }
+            voltageDataQueue.AddData(average, all);
         }
     }
 }

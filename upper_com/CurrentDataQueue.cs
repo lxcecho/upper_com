@@ -1,4 +1,5 @@
-﻿using NPOI.SS.UserModel;
+﻿using Microsoft.Office.Interop.Excel;
+using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
@@ -130,7 +131,7 @@ namespace upper_com
 
         // 添加数据到队列中，并检查是否需要报警
         // allowOutOfBounds: 是否允许超出限值的数据入队列
-        public void AddData(double i1, double i2, AllCurrentData all, bool allowOutOfBounds = false)
+        public void AddData(double i1, double i2, CurrentData all, bool allowOutOfBounds = false)
         {
 
             // 队列满
@@ -233,57 +234,56 @@ namespace upper_com
         }
 
         // 处理数据元，用来画T曲线
-        private async void CurrentDataProcessed(AllCurrentData all)
+        private async void CurrentDataProcessed(CurrentData all)
         {
             Console.WriteLine("OnDataUpdated called.");
 
             // 在这里处理更新的数据
-            var currentData = new CurrentData();
+            var currentData = new CurrentDataTable();
+
             /* 初始化 CurrentData 对象的参数 */
+            int serialNo = all.serialNo;
+            currentData.serialNo = serialNo;
+            currentData.curDate = DateTime.Now.ToString();
 
-            string serialNo = all.SerialNo;
-            currentData.SetSerialNo(serialNo);
-            currentData.SetCurDate(DateTime.Now.ToString());
-
-            List<double> stableList = all.StatbleList;
+            List<double> stableList = all.stableList;
 
             if (stableList != null && stableList.Count > 0)
             {
-                double stableAverage = stableList.Count > 0 ? stableList.Average() : 0;
+                double stableAverage = stableList.Average();
                 double varianceS = stableList.Average(v => Math.Pow(v - stableAverage, 2));
                 double standardDeviationS = Math.Sqrt(varianceS);
 
                 double stableLimit = stableAverage - k * standardDeviationS;
                 double stableUpper = stableAverage + k * standardDeviationS;
 
-                currentData.SetSmoothAverage(stableAverage);
-                currentData.SetSmoothLower(stableLimit);
-                currentData.SetSmoothUpper(stableUpper);
+                currentData.smoothAverage = stableAverage;
+                currentData.smoothLower = stableLimit;
+                currentData.smoothUpper = stableUpper;
             }
 
-            List<double> mutationList = all.MutationList;
+            List<double> mutationList = all.mutationList;
             if (mutationList != null && mutationList.Count > 0)
             {
-                double mutationAverage = mutationList.Count > 0 ? mutationList.Average() : 0;
+                double mutationAverage = mutationList.Average();
                 double varianceM = stableList.Average(v => Math.Pow(v - mutationAverage, 2));
                 double standardDeviationM = Math.Sqrt(varianceM);
 
                 double mutationLimit = mutationAverage - k * standardDeviationM;
                 double mutationUpper = mutationAverage + k * standardDeviationM;
 
-                currentData.SetMutationAverage(mutationAverage);
-                currentData.SetMutationLower(mutationLimit);
-                currentData.SetMutationUpper(mutationUpper);
+                currentData.mutationAverage = double.Parse($"{mutationAverage:F2}");
+                currentData.mutationLower = double.Parse($"{mutationLimit:F2}");
+                currentData.mutationUpper = double.Parse($"{mutationUpper:F2}");
             }
 
             UpdateCurrentData(currentData);
 
-            stableList.AddRange(mutationList);
             // 异步将 curs 数据写入到 Excel 文件的第二个 Sheet
-            await WriteCursDataToSheet2Async(serialNo, stableList);
+            await WriteCursDataToSheet2Async(all);
         }
 
-        private async Task WriteCursDataToSheet2Async(string serialNo, List<double> curs)
+        private async Task WriteCursDataToSheet2Async(CurrentData all)
         {
             await Task.Run(() =>
             {
@@ -315,12 +315,18 @@ namespace upper_com
                         // 找到最后一行
                         int lastRowNum = sheet.LastRowNum;
 
-                        // 将 serialNo 和 curs 数据写入到第二个 Sheet
-                        foreach (var cur in curs)
+                        // 将元数据写入到第二个 Sheet
+                        List<double> stableList = all.stableList;
+                        List<double> mutationList = all.mutationList;
+
+                        stableList.AddRange(mutationList);
+
+                        foreach (var cur in stableList)
                         {
                             IRow newRow = sheet.CreateRow(++lastRowNum);
-                            newRow.CreateCell(0).SetCellValue(serialNo); // 第一列写入 serialNo
-                            newRow.CreateCell(1).SetCellValue(cur);      // 第二列写入 curs 值
+                            newRow.CreateCell(0).SetCellValue(all.serialNo);
+                            newRow.CreateCell(1).SetCellValue(cur);
+                            newRow.CreateCell(2).SetCellValue(all.totalDuration);
                         }
 
                         // 写入文件
@@ -337,7 +343,19 @@ namespace upper_com
             });
         }
 
-        private async void UpdateCurrentData(CurrentData currentData)
+        void WriteData(IEnumerable<double> dataList, int serialNo, double dataDuration, double totalDuration, ISheet sheet, int lastRowNum)
+        {
+            foreach (var cur in dataList)
+            {
+                IRow newRow = sheet.CreateRow(++lastRowNum);
+                newRow.CreateCell(0).SetCellValue(serialNo); // Write serialNo in the first column
+                newRow.CreateCell(1).SetCellValue(cur);          // Write current value in the second column
+                newRow.CreateCell(2).SetCellValue(dataDuration);     // Write duration in the third column
+                newRow.CreateCell(3).SetCellValue(totalDuration);  // Write total duration in the fourth column
+            }
+        }
+
+        private async void UpdateCurrentData(CurrentDataTable currentData)
         {
             if (this.dataGridView1.InvokeRequired)
             {
@@ -356,14 +374,14 @@ namespace upper_com
             await Task.Run(() => WriteCurrentDataToFile(currentData));
         }
 
-        private void AddCurrentDataToGridView(CurrentData currentData)
+        private void AddCurrentDataToGridView(CurrentDataTable currentData)
         {
             if (currentData != null)
             {
                 // 更新 DataGridView
-                this.dataGridView1.Rows.Add(currentData.GetSerialNo(), currentData.GetCurDate(), currentData.GetSmoothAverage(),
-                    currentData.GetSmoothUpper(), currentData.GetSmoothLower(), currentData.GetMutationAverage(),
-                    currentData.GetMutationUpper(), currentData.GetMutationLower());
+                this.dataGridView1.Rows.Add(currentData.serialNo, currentData.curDate, currentData.smoothAverage,
+                    currentData.smoothUpper, currentData.smoothLower, currentData.mutationAverage,
+                    currentData.mutationUpper, currentData.mutationLower);
 
                 // 检查当前行数是否超过 15
                 if (this.dataGridView1.Rows.Count >= 15)
@@ -374,7 +392,7 @@ namespace upper_com
             }
         }
 
-        private void WriteCurrentDataToFile(CurrentData currentData)
+        private void WriteCurrentDataToFile(CurrentDataTable currentData)
         {
             lock (currentFileLock)
             {
@@ -417,16 +435,16 @@ namespace upper_com
                     if (currentData != null)
                     {
                         // 追加数据
-                        newRow.CreateCell(0).SetCellValue(currentData.GetSerialNo());
-                        newRow.CreateCell(1).SetCellValue(currentData.GetCurDate());
-                        //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
-                        newRow.CreateCell(2).SetCellValue(currentData.GetSmoothAverage());
-                        newRow.CreateCell(3).SetCellValue(currentData.GetSmoothUpper());
-                        newRow.CreateCell(4).SetCellValue(currentData.GetSmoothLower());
-                        //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
-                        newRow.CreateCell(5).SetCellValue(currentData.GetMutationAverage());
-                        newRow.CreateCell(6).SetCellValue(currentData.GetMutationUpper());
-                        newRow.CreateCell(7).SetCellValue(currentData.GetMutationLower());
+                        newRow.CreateCell(0).SetCellValue(currentData.serialNo);
+                        newRow.CreateCell(1).SetCellValue(currentData.curDate);
+                        //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur().ToString("F2"));
+                        newRow.CreateCell(2).SetCellValue(currentData.smoothLower.ToString("F2"));
+                        newRow.CreateCell(3).SetCellValue(currentData.smoothUpper.ToString("F2"));
+                        newRow.CreateCell(4).SetCellValue(currentData.smoothLower.ToString("F2"));
+                        //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur().ToString("F2"));
+                        newRow.CreateCell(5).SetCellValue(currentData.mutationAverage.ToString("F2"));
+                        newRow.CreateCell(6).SetCellValue(currentData.mutationUpper.ToString("F2"));
+                        newRow.CreateCell(7).SetCellValue(currentData.smoothLower.ToString("F2"));
                     }
 
                     // 写入文件

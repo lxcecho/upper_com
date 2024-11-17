@@ -1,4 +1,5 @@
-﻿using NPOI.SS.UserModel;
+﻿using NPOI.POIFS.Crypt.Dsig;
+using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
@@ -23,7 +24,7 @@ namespace upper_com
         /**
          * 管理每个队列的数据，计算均值和标准差，并检查数据是否在限值内
          */
-        private Queue<(double i1, double i2)> queue;
+        private Queue<double> queue;
 
         // 队列的最大大小，默认为 20
         private int maxSize;
@@ -35,9 +36,10 @@ namespace upper_com
 
         public VoltageDataQueue(DataGridView dataGridView2, int size = 20, int kValue = 3)
         {
-            queue = new Queue<(double, double)>();
+            queue = new Queue<double>();
             maxSize = size;
             k = kValue;
+            averageMutationHistory = new List<double>();
 
             this.dataGridView2 = dataGridView2;
             InitializeFileWatcher();
@@ -125,9 +127,7 @@ namespace upper_com
             }
         }
 
-
-
-        private async void UpdateVoltagetData(VoltageData voltageData)
+        private async void UpdateVoltagetData(VoltageDataTable voltageData)
         {
             if (this.dataGridView2.InvokeRequired)
             {
@@ -146,17 +146,18 @@ namespace upper_com
             await Task.Run(() => WriteVoltageDataToFile(voltageData));
         }
 
-        private void AddVoltageDataToGridView(VoltageData voltageData)
+        private void AddVoltageDataToGridView(VoltageDataTable voltageData)
         {
             // 更新 DataGridView
-            this.dataGridView2.Rows.Add(voltageData.GetCurrentNo(), voltageData.GetVoltageTransformSignal());
+            this.dataGridView2.Rows.Add(voltageData.currentNo, voltageData.voltageTransformSignal,
+                voltageData.average, voltageData.upper, voltageData.lower);
             if (this.dataGridView2.Rows.Count > 15)
             {
                 this.dataGridView2.Rows.RemoveAt(0);
             }
         }
 
-        private void WriteVoltageDataToFile(VoltageData voltageData)
+        private void WriteVoltageDataToFile(VoltageDataTable voltageData)
         {
             lock (voltageFileLock)
             {
@@ -175,9 +176,8 @@ namespace upper_com
                         headerRow.CreateCell(0).SetCellValue("电流测试编号");
                         headerRow.CreateCell(1).SetCellValue("压力传送信号");
                         headerRow.CreateCell(2).SetCellValue("压力值V");
-                        headerRow.CreateCell(3).SetCellValue("压力均值");
-                        headerRow.CreateCell(4).SetCellValue("压力上限");
-                        headerRow.CreateCell(5).SetCellValue("压力下限");
+                        headerRow.CreateCell(3).SetCellValue("压力上限");
+                        headerRow.CreateCell(4).SetCellValue("压力下限");
                     }
                     else
                     {
@@ -193,10 +193,11 @@ namespace upper_com
                     int lastRowNum = sheet.LastRowNum;
                     IRow newRow = sheet.CreateRow(lastRowNum + 1);
                     // 追加数据
-                    newRow.CreateCell(0).SetCellValue(voltageData.GetCurrentNo());
-                    newRow.CreateCell(1).SetCellValue(voltageData.GetVoltageTransformSignal());
-                    //newRow.CreateCell(2).SetCellValue(voltageData.GetSmoothCur());
-                    //newRow.CreateCell(3).SetCellValue(voltageData.GetSmoothAverage());
+                    newRow.CreateCell(0).SetCellValue(voltageData.currentNo);
+                    newRow.CreateCell(1).SetCellValue(voltageData.voltageTransformSignal);
+                    newRow.CreateCell(2).SetCellValue(voltageData.average.ToString("F2"));
+                    newRow.CreateCell(3).SetCellValue(voltageData.upper.ToString("F2"));
+                    newRow.CreateCell(4).SetCellValue(voltageData.lower.ToString("F2"));
 
                     // 写入文件
                     using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
@@ -213,20 +214,19 @@ namespace upper_com
 
         // 添加数据到队列中，并检查是否需要报警
         // allowOutOfBounds: 是否允许超出限值的数据入队列
-        public void AddData(double i1, double i2, bool allowOutOfBounds = false)
+        public void AddData(double value, VoltageData all, bool allowOutOfBounds = false)
         {
-
             // 队列满
             if (queue.Count == maxSize)
             {
-                // 计算I1的均值和标准差
-                double meanI1 = queue.Select(x => x.i1).Average();
-                double stdDevI1 = Math.Sqrt(queue.Select(x => Math.Pow(x.i1 - meanI1, 2)).Average());
-                double lowerLimitI1 = meanI1 - k * stdDevI1;
-                double upperLimitI1 = meanI1 + k * stdDevI1;
+                // Calculate mean and standard deviation
+                double mean = queue.Average();
+                double stdDev = Math.Sqrt(queue.Select(x => Math.Pow(x - mean, 2)).Average());
+                double lowerLimit = mean - k * stdDev;
+                double upperLimit = mean + k * stdDev;
 
-                // 判断I1和I2是否在限值内 不在限值内，报警
-                if ((i1 < lowerLimitI1 || i1 > upperLimitI1))
+                // Check if value is within limits
+                if (value < lowerLimit || value > upperLimit)
                 {
                     MessageBox.Show("预警：数据不在上下限范围内！！！！！！！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     if (!allowOutOfBounds)
@@ -234,12 +234,12 @@ namespace upper_com
                         return;
                     }
                 }
-                // 出队
+                // Dequeue
                 queue.Dequeue();
             }
 
-            // 入队
-            queue.Enqueue((i1, i2));
+            // Enqueue
+            queue.Enqueue(value);
 
             UpdateAverageHistory();
 
@@ -249,16 +249,15 @@ namespace upper_com
             }
 
             // TODO 这里要处理元数据，画T曲线
-            VoltageDataProcessed();
+            VoltageDataProcessed(all);
 
         }
 
         // 更新最近 20 个平均值的历史记录。
         private void UpdateAverageHistory()
         {
-            double currentAverageI1 = queue.Select(x => x.i1).Average();
-            double currentAverageI2 = queue.Select(x => x.i2).Average();
-            averageMutationHistory.Add(currentAverageI1);
+            double volAverage = queue.Average();
+            averageMutationHistory.Add(volAverage);
 
             if (averageMutationHistory.Count > 20)
             {
@@ -269,44 +268,57 @@ namespace upper_com
         // 检查最近 20 个平均值是否有持续上升或下降的趋势。
         private void CheckForTrend()
         {
-            bool increasingI1 = true;
-            bool decreasingI1 = true;
-            bool increasingI2 = true;
-            bool decreasingI2 = true;
-
+            bool increasing = true;
+            bool decreasing = true;
 
             for (int i = 1; i < averageMutationHistory.Count; i++)
             {
                 if (averageMutationHistory[i] <= averageMutationHistory[i - 1])
                 {
-                    increasingI2 = false;
+                    increasing = false;
                 }
                 if (averageMutationHistory[i] >= averageMutationHistory[i - 1])
                 {
-                    decreasingI2 = false;
+                    decreasing = false;
                 }
             }
 
-            if (increasingI1 || decreasingI1 || increasingI2 || decreasingI2)
+            if (increasing || decreasing)
             {
                 MessageBox.Show("预警：数据连续20组均值增大/变小！！！！！！！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
-        private async void VoltageDataProcessed()
+        private async void VoltageDataProcessed(VoltageData all)
         {
             Console.WriteLine("OnDataUpdated called.");
 
             // 在这里处理更新的数据
-            var voltage = new VoltageData();
-            /* 初始化 CurrentData 对象的参数 */
+            var voltage = new VoltageDataTable();
+
+            voltage.currentNo = all.currentNo;
+            voltage.voltageTransformSignal = all.voltageTransformSignal;
+            if (all.voltageList != null && all.voltageList.Count > 0)
+            {
+                List<double> list = all.voltageList;
+                double mean = list.Average();
+                voltage.average = mean;
+                // Calculate standard deviation
+                double stdDev = (double)Math.Sqrt(list.Select(x => Math.Pow(x - mean, 2)).Average());
+
+                // Calculate limits
+                voltage.lower = mean - k * stdDev;
+                voltage.upper = mean + k * stdDev;
+            }
+
+            UpdateVoltagetData(voltage);
 
 
             // 异步将 curs 数据写入到 Excel 文件的第二个 Sheet
-            await WriteCursDataToSheet2Async(voltage);
+            await WriteCursDataToSheet2Async(all);
         }
 
-        private async Task WriteCursDataToSheet2Async(VoltageData voltage)
+        private async Task WriteCursDataToSheet2Async(VoltageData all)
         {
             await Task.Run(() =>
             {
@@ -339,12 +351,13 @@ namespace upper_com
                         int lastRowNum = sheet.LastRowNum;
 
                         // 将 serialNo 和 curs 数据写入到第二个 Sheet
-                        /*foreach (var cur in curs)
+                        foreach (var cur in all.voltageList)
                         {
                             IRow newRow = sheet.CreateRow(++lastRowNum);
-                            newRow.CreateCell(0).SetCellValue(serialNo); // 第一列写入 serialNo
+                            newRow.CreateCell(0).SetCellValue(all.currentNo); // 第一列写入 serialNo
                             newRow.CreateCell(1).SetCellValue(cur);      // 第二列写入 curs 值
-                        }*/
+                            newRow.CreateCell(2).SetCellValue(all.duration);      // 第三列写入 T 值
+                        }
 
                         // 写入文件
                         using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))

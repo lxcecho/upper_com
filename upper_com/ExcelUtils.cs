@@ -9,7 +9,7 @@ namespace upper_com
 {
     internal class ExcelUtils
     {
-        public static void SynchronizedToExcelFile(string filePath, CurrentData currentData)
+        public static void SynchronizedToExcelFile(string filePath, CurrentDataTable currentData)
         {
             IWorkbook workbook;
             ISheet sheet;
@@ -51,16 +51,16 @@ namespace upper_com
             IRow newRow = sheet.CreateRow(lastRowNum + 1);
 
             // 追加数据
-            newRow.CreateCell(0).SetCellValue(currentData.GetSerialNo());
-            newRow.CreateCell(1).SetCellValue(currentData.GetCurDate());
+            newRow.CreateCell(0).SetCellValue(currentData.serialNo);
+            newRow.CreateCell(1).SetCellValue(currentData.curDate);
             //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
-            newRow.CreateCell(3).SetCellValue(currentData.GetSmoothAverage());
-            newRow.CreateCell(4).SetCellValue(currentData.GetSmoothUpper());
-            newRow.CreateCell(5).SetCellValue(currentData.GetSmoothLower());
+            newRow.CreateCell(3).SetCellValue(currentData.smoothAverage);
+            newRow.CreateCell(4).SetCellValue(currentData.smoothUpper);
+            newRow.CreateCell(5).SetCellValue(currentData.smoothLower);
             //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
-            newRow.CreateCell(7).SetCellValue(currentData.GetMutationAverage());
-            newRow.CreateCell(8).SetCellValue(currentData.GetMutationUpper());
-            newRow.CreateCell(9).SetCellValue(currentData.GetMutationLower());
+            newRow.CreateCell(7).SetCellValue(currentData.mutationAverage);
+            newRow.CreateCell(8).SetCellValue(currentData.mutationUpper);
+            newRow.CreateCell(9).SetCellValue(currentData.mutationLower);
 
 
             // 写入文件

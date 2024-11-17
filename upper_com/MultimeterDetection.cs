@@ -16,12 +16,13 @@ using System.Diagnostics;
 using System.Timers;
 using System.Linq;
 using Org.BouncyCastle.Bcpg.Sig;
+using NPOI.POIFS.Crypt.Dsig;
 
 namespace upper_com
 {
     internal class MultimeterDetection
     {
-        private readonly string ip = "192.168.1.25"; // 万用表IP
+        private string multimerIp;
 
         private MyLED myLED2;
 
@@ -35,75 +36,31 @@ namespace upper_com
 
         private bool isCollectingData; // 控制数据采集的标志
 
-        private string currentSerialNo; // 电流测试编号
+        private int currentSerialNo; // 电流测试编号
 
         private CurrentDataQueue currentDataQueue;
 
-        // 静态变量确保只创建一次
-        private static ResourceManager rm;
-        private static MessageBasedSession mbSession;
-        private static readonly object lockObj = new object();
+        private VisaClient visaClient;
 
-        private CancellationTokenSource cancellationTokenSource;
+        public double T {  get; set; }
 
-        public MultimeterDetection(MyLED myLED2, DataGridView dataGridView1)
+        public MultimeterDetection()
         {
+
+        }
+
+        public MultimeterDetection(DataGridView dataGridView1)
+        {
+            this.dataGridView1 = dataGridView1;
+        }
+
+        public MultimeterDetection(MyLED myLED2, DataGridView dataGridView1, string multimerIp)
+        {
+            this.multimerIp = multimerIp;
             this.myLED2 = myLED2;
             this.dataGridView1 = dataGridView1;
 
-            this.cancellationTokenSource = new CancellationTokenSource();
-            InitializeSession(cancellationTokenSource.Token);
-        }
-
-        private async void InitializeSession(CancellationToken token)
-        {
-            if (mbSession == null)
-            {
-                lock (lockObj)
-                {
-                    if (rm == null)
-                    {
-                        rm = new ResourceManager();
-                    }
-                }
-
-                while (mbSession == null)
-                {
-                    try
-                    {
-                        token.ThrowIfCancellationRequested(); // 检查取消请求
-
-                        var resource = $"TCPIP0::{ip}::inst0::INSTR";
-                        mbSession = (MessageBasedSession)rm.Open(resource);
-                        mbSession.TimeoutMilliseconds = 5000; // 设置超时时间
-
-                        Console.WriteLine("连接成功");
-                        UpdateLEDStatus(Color.Green);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        Console.WriteLine("连接操作被取消");
-                        break; // 退出循环
-                    }
-                    catch (VisaException ex)
-                    {
-                        Console.WriteLine("VISA错误: " + ex.Message);
-                        UpdateLEDStatus(Color.DimGray);
-                        await Task.Delay(1000, token); // 每秒重试一次，支持取消
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine("发生错误: " + ex.Message);
-                        UpdateLEDStatus(Color.DimGray);
-                        await Task.Delay(1000, token); // 每秒重试一次，支持取消
-                    }
-                }
-            }
-        }
-
-        public void CancelConnection()
-        {
-            cancellationTokenSource.Cancel(); // 请求取消连接操作
+            visaClient = new VisaClient(this.multimerIp);
         }
 
         public void SetInputDate(InputData data)
@@ -126,12 +83,37 @@ namespace upper_com
             return this.isPlaying;
         }
 
-        public async Task SendConfigCommand()
+        public void SetSignal(bool signal)
+        {
+            this.isCollectingData = signal;
+        }
+
+        public void SetCurrentSerialNo(int serialNo)
+        {
+            this.currentSerialNo = serialNo;
+        }
+
+
+        public bool MultimerOpen()
+        {
+            if (visaClient.Connected)
+            {
+                UpdateLEDStatus(Color.Green);
+                return true;
+            }
+            else
+            {
+                UpdateLEDStatus(Color.DimGray);
+                return false;
+            }
+        }
+
+        public void SendConfigCommand()
         {
             try
             {
                 // 检查连接是否成功
-                if (mbSession != null)
+                if (visaClient.Connected)
                 {
                     // 发送查询命令
 
@@ -146,14 +128,9 @@ namespace upper_com
                         mbSession.RawIO.Write("TRIG:SOUR IMM");
                     }*/
 
-                    mbSession.RawIO.Write("DISPlay 0");
-                    mbSession.RawIO.Write("CURRent:DC:RANGe 0.2");
-                    mbSession.RawIO.Write("CURRent:DC:NPLC F");
-                }
-                else
-                {
-                    Console.WriteLine("无法连接设备！！！！！！！！！");
-                    UpdateLEDStatus(Color.DimGray);
+                    visaClient.Write("FUNCtion \"CURR:DC\"");
+                    visaClient.Write("CURRent:DC:RANGe 0.2");
+                    visaClient.Write("CURRent:DC:NPLC F");
                 }
             }
             catch (Exception ex)
@@ -162,26 +139,16 @@ namespace upper_com
             }
         }
 
-        public void SetSignal(bool signal)
-        {
-            this.isCollectingData = signal;
-        }
-
-        public void SetCurrentSerialNo(string serialNo)
-        {
-            this.currentSerialNo = serialNo;
-        }
-
-        public async Task StartCollectingData()
+        public async Task MultimeterListenerHandler()
         {
             // TODO 调试万用表测试
-            if (this.isPlaying)
+            if (visaClient.Connected && this.isPlaying)
             {
                 await SendReadCommandAsync();
             }
             else
             {
-                MessageBox.Show("暂不处理！！！！！！！！");
+                Console.WriteLine("数据采集停止，什么都不做！！！！！！！！");
             }
         }
 
@@ -189,17 +156,18 @@ namespace upper_com
         {
             try
             {
-                mbSession.RawIO.Write("INIT");
-                // 如果需要确认命令执行，可以发送查询命令
-                mbSession.RawIO.Write("*OPC?\n"); // 查询操作完成
-                string responseInit = mbSession.RawIO.ReadString();
-                if (responseInit.Equals("1"))
+                if (visaClient.Connected)
                 {
-                    /*mbSession.RawIO.Write("FETCH?\n");
-                    string response = mbSession.RawIO.ReadString();
-                    Console.WriteLine("Measurement Data: " + response);*/
+                    /*visaClient.Write("FUNCtion \"CURR:DC\"");
+                    visaClient.Write("CURRent:DC:RANGe 0.2");
+                    visaClient.Write("CURRent:DC:NPLC F");*/
 
-                    _ = FetchgingData();
+                    // 如果需要确认命令执行，可以发送查询命令
+                    /*visaClient.Write("*OPC?\n"); // 查询操作完成
+                    string responseInit = visaClient.Read();*/
+
+                    await FetchgingData();
+
                 }
             }
             catch (Exception ex)
@@ -211,15 +179,19 @@ namespace upper_com
 
         private async Task FetchgingData()
         {
-            // 循环检查收集数据的状态，此状态由PLC设置
-            while (isCollectingData)
+            if (inputData != null && inputData.DataQueue.Count > 0)
             {
-                if (inputData != null && inputData.DataQueue.Count > 0)
+                currentDataQueue = new CurrentDataQueue(this.dataGridView1, inputData.Num, inputData.K); // 初始化 DataQueue
+
+                DateTime start;
+                DateTime end;
+
+                // 循环检查收集数据的状态，此状态由PLC设置
+                while (isCollectingData && visaClient.Connected)
                 {
                     // TODO 调试使用，真正需要放在收到起始信号位置开始
-                    //start = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                    start = DateTime.Now;
 
-                    currentDataQueue = new CurrentDataQueue(this.dataGridView1, inputData.Num, inputData.K); // 初始化 DataQueue
                     timeQueue = new Queue<(int start, int duration)>(inputData.DataQueue);
 
                     // 循环遍历15组时间设置
@@ -228,23 +200,23 @@ namespace upper_com
                         List<double> stableData = new List<double>();
                         List<double> mutationData = new List<double>();
 
-                        AllCurrentData all = new AllCurrentData();
+                        CurrentData all = new CurrentData();
 
                         var data = timeQueue.Dequeue();
+
                         Stopwatch stopwatch = new Stopwatch();
                         stopwatch.Start(); // 重置并启动计时器
 
-                        Console.WriteLine("flag1=" + stopwatch.ElapsedMilliseconds + "start: " + data.start + ", duration: " + data.duration);
+                        // Console.WriteLine("flag1=" + stopwatch.ElapsedMilliseconds + "start: " + data.start + ", duration: " + data.duration);
 
                         // 收集平稳段数据
-                        while (stopwatch.ElapsedMilliseconds < (data.start + data.duration) && isCollectingData)
+                        while (stopwatch.ElapsedMilliseconds <= (data.start + data.duration) && isCollectingData)
                         {
                             if (stopwatch.ElapsedMilliseconds >= data.start)
                             {
-                                //Console.WriteLine("开始采集平稳段数据");
-                                mbSession.RawIO.Write("FETCH?\n");
-                                string response = mbSession.RawIO.ReadString();
-                                if (double.TryParse(response, out double value))
+                                visaClient.Write("CREAD?");
+                                string response = visaClient.Read();
+                                if (!string.IsNullOrEmpty(response) && double.TryParse(response, out double value))
                                 {
                                     stableData.Add(value * 3000);
                                 }
@@ -257,35 +229,33 @@ namespace upper_com
                         {
                             if (stopwatch.ElapsedMilliseconds >= data.start + data.duration)
                             {
-                                //Console.WriteLine("开始采集突变段数据");
-                                mbSession.RawIO.Write("FETCH?\n");
-                                string response = mbSession.RawIO.ReadString();
-                                if (double.TryParse(response, out double value))
+                                visaClient.Write("CREAD?");
+                                string response = visaClient.Read();
+                                if (!string.IsNullOrEmpty(response) && double.TryParse(response, out double value))
                                 {
                                     mutationData.Add(value * 3000);
                                 }
                                 Console.WriteLine("Mutation Phase Data: " + response);
-                                break;
                             }
                         }
 
+                        end = DateTime.Now;
                         stopwatch.Stop();
 
+                        double duration = (end - start).TotalSeconds;
+                        all.totalDuration = duration;
+                        T = duration;
 
                         // 计算平稳段和突变段的平均值
                         double stableAverage = stableData.Count > 0 ? stableData.Average() : 0;
                         double mutationAverage = mutationData.Count > 0 ? mutationData.Average() : 0;
 
                         // 将所有数据都添加到 DataQueue
-                        all.StatbleList = stableData;
-                        all.MutationList = mutationData;
-                        all.SerialNo = this.currentSerialNo;
+                        all.stableList = stableData;
+                        all.mutationList = mutationData;
+                        all.serialNo = this.currentSerialNo;
                         currentDataQueue.AddData(stableAverage, mutationAverage, all);
                     }
-                }
-                else
-                {
-                    await Task.Delay(500); // 如果没有数据或未开始采集，稍作延迟
                 }
             }
         }
@@ -296,7 +266,7 @@ namespace upper_com
             List<double> stableData = new List<double>();
             List<double> mutationData = new List<double>();
 
-            AllCurrentData all = new AllCurrentData();
+            CurrentData all = new CurrentData();
 
             stableData.Add(0.99877156E-03 * 3000);
             stableData.Add(0.99877156E-03 * 3000);
@@ -320,15 +290,17 @@ namespace upper_com
             mutationData.Add(1.99877156E-03 * 3000);
             mutationData.Add(1.99877156E-03 * 3000);
 
+            all.totalDuration = 2.0;
+            T = 2.0;
 
             // 计算平稳段和突变段的平均值
             double stableAverage = stableData.Count > 0 ? stableData.Average() : 0;
             double mutationAverage = mutationData.Count > 0 ? mutationData.Average() : 0;
 
             // 将所有数据都添加到 DataQueue
-            all.StatbleList = stableData;
-            all.MutationList = mutationData;
-            all.SerialNo = "1001";
+            all.stableList = stableData;
+            all.mutationList = mutationData;
+            all.serialNo = 1001;
             currentDataQueue.AddData(stableAverage, mutationAverage, all);
         }
 

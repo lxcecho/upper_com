@@ -182,15 +182,18 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AllCurrentData.cs" />
+    <Compile Include="CurrentData.cs" />
     <Compile Include="ChartForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="VoltageDataTable.cs" />
+    <Compile Include="S7NetClient.cs" />
+    <Compile Include="VisaClient.cs" />
     <Compile Include="VoltageDataQueue.cs" />
     <Compile Include="DataUpdatedEventArgs .cs" />
     <Compile Include="ExcelUtils.cs" />
     <Compile Include="CurrentDataQueue.cs" />
-    <Compile Include="CurrentData.cs" />
+    <Compile Include="CurrentDataTable.cs" />
     <Compile Include="DataScreenForm.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -5,55 +5,20 @@ namespace upper_com
     internal class VoltageData
     {
         // 电流测试编号
-        private int currentNo;
+        public int currentNo { get; set; }
 
         // 电流测试信号
-        private bool currentTestSignal;
+        public bool currentStartSignal { get; set; }
+
+        // 电流测试信号
+        public bool currentEndSignal { get; set; }
 
         // 压力传送信号
-        private bool voltageTransformSignal;
+        public bool voltageTransformSignal { get; set; }
 
         // 15组压力数据
-        private List<double> voltageList;
+        public List<double> voltageList { get; set; }
 
-        public void SetCurrentNo(int currentNo)
-        {
-            this.currentNo = currentNo;
-        }
-
-        public int GetCurrentNo()
-        {
-            return this.currentNo;
-        }
-
-        public void SetCurrentTestSignal(bool currentTestSignal)
-        {
-            this.currentTestSignal = currentTestSignal;
-        }
-
-        public bool GetCurrentTestSignal()
-        {
-            return this.currentTestSignal;
-        }
-
-        public void SetVoltageTransformSignal(bool voltageTransformSignal)
-        {
-            this.voltageTransformSignal = voltageTransformSignal;
-        }
-
-        public bool GetVoltageTransformSignal()
-        {
-            return this.voltageTransformSignal;
-        }
-
-        public void SetVoltageList(List<double> voltageList)
-        {
-            this.voltageList = voltageList;
-        }
-        public List<double> GetVoltageList()
-        {
-            return this.voltageList;
-        }
-
+        public double duration { get; set; }
     }
 }
