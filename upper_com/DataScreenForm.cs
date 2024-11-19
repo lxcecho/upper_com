@@ -293,7 +293,7 @@ namespace upper_com
             }
         }
 
-        private ChartForm chartFormForCurrent;
+        /*private ChartForm chartFormForCurrent;*/
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             Console.WriteLine("CellClick event triggered");
@@ -333,7 +333,10 @@ namespace upper_com
 
                     if (values.Count > 0)
                     {
-                        if (chartFormForCurrent == null || chartFormForCurrent.IsDisposed)
+                        // 创建并显示新的ChartForm
+                        ChartForm chartFormForCurrent = new ChartForm(xValues, values.ToArray(), serialNo);
+                        chartFormForCurrent.Show();
+                        /*if (chartFormForCurrent == null || chartFormForCurrent.IsDisposed)
                         {
                             // 创建并显示新的ChartForm
                             chartFormForCurrent = new ChartForm(xValues, values.ToArray(), serialNo);
@@ -343,7 +346,7 @@ namespace upper_com
                         {
                             // 更新现有的ChartForm的数据
                             chartFormForCurrent.UpdateChart(values.ToArray(), serialNo);
-                        }
+                        }*/
                     }
                     else
                     {
@@ -357,7 +360,7 @@ namespace upper_com
             }
         }
 
-        private ChartForm chartFormForVoltage;
+        /*private ChartForm chartFormForVoltage;*/
         private void dataGridView2_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0) // 确保点击的是有效行
@@ -393,18 +396,19 @@ namespace upper_com
 
                     if (values.Count > 0)
                     {
-
-                        if (chartFormForVoltage == null || chartFormForVoltage.IsDisposed)
+                        ChartForm chartFormForVoltage = new ChartForm(/*xValues, */values.ToArray(), serialNo);
+                        chartFormForVoltage.Show();
+                        /*if (chartFormForVoltage == null || chartFormForVoltage.IsDisposed)
                         {
                             // 创建并显示新的ChartForm
-                            chartFormForVoltage = new ChartForm(/*xValues, */values.ToArray(), serialNo);
+                            chartFormForVoltage = new ChartForm(*//*xValues, *//*values.ToArray(), serialNo);
                             chartFormForVoltage.Show();
                         }
                         else
                         {
                             // 更新现有的ChartForm的数据
-                            chartFormForVoltage.UpdateChart(/*xValues, */values.ToArray(), serialNo);
-                        }
+                            chartFormForVoltage.UpdateChart(*//*xValues, *//*values.ToArray(), serialNo);
+                        }*/
                     }
                     else
                     {
@@ -543,7 +547,9 @@ namespace upper_com
                 }
                 else
                 {
-                    MessageBox.Show($"Invalid input format: ({cleanedPair})");
+                    MessageBox.Show($"无效的输入: ({cleanedPair})");
+                    //MessageBox.Show($"Invalid input format: ({cleanedPair})");
+                    return null;
                 }
             }
             return dataQueue;
@@ -558,23 +564,30 @@ namespace upper_com
 
         private void myBtn_Click(object sender, EventArgs e)
         {
+            MyButton button = sender as MyButton;
+            bool hasError = false; // 初始化错误标志
+
             MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
             test.TestData();
 
             PLCDetection testPlc = new PLCDetection(this.dataGridView2);
             testPlc.TestData();
 
-            /*// 1. 参数校验
+            // 1. 参数校验
             InputData inputData = new InputData();
             inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
             inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
             inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
+            if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
+            {
+                MessageBox.Show("15组数据未设置，请先设置再点击开始！！！");
+                hasError = true; // 设置错误标志
+                return;
+            }
 
             // 要两个服务端都连接上才能进行开始采集数据
-            if (multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
+            /*if (!hasError && multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
             {
-                MyButton button = sender as MyButton;
-
                 if (button.IsPlaying)
                 {
                     //MessageBox.Show("暂停");
@@ -618,6 +631,12 @@ namespace upper_com
                     }
                 }
             }*/
+
+            // 切换按钮状态
+            if (!hasError)
+            {
+                button.IsPlaying = !button.IsPlaying;
+            }
         }
 
         private void syncBtn_Click(object sender, EventArgs e)

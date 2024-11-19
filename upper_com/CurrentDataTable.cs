@@ -15,29 +15,29 @@ namespace upper_com
         // =========平稳段==============
         //private double smoothCur;
 
-        public double smoothAverage { set; get; }
+        public string smoothAverage { set; get; }
 
-        public double smoothUpper { set; get; }
+        public string smoothUpper { set; get; }
 
-        public double smoothLower { set; get; }
+        public string smoothLower { set; get; }
 
         // =========突变段=============
         //private double mutationCur;
 
-        public double mutationAverage { set; get; }
+        public string mutationAverage { set; get; }
 
-        public double mutationUpper { set; get; }
+        public string mutationUpper { set; get; }
 
-        public double mutationLower { set; get; }
+        public string mutationLower { set; get; }
 
         public CurrentDataTable()
         {
 
         }
 
-        public CurrentDataTable(int serialNo, string curDate, /*double smoothCur,*/ double smoothAverage,
-            double smoothUpper, double smoothLower, /*double mutationCur,*/
-            double mutationAverage, double mutationUpper, double mutationLower)
+        public CurrentDataTable(int serialNo, string curDate, /*string smoothCur,*/ string smoothAverage,
+            string smoothUpper, string smoothLower, /*string mutationCur,*/
+            string mutationAverage, string mutationUpper, string mutationLower)
         {
             this.serialNo = serialNo;
             this.curDate = curDate;

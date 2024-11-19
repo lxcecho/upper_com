@@ -195,9 +195,9 @@ namespace upper_com
                     // 追加数据
                     newRow.CreateCell(0).SetCellValue(voltageData.currentNo);
                     newRow.CreateCell(1).SetCellValue(voltageData.voltageTransformSignal);
-                    newRow.CreateCell(2).SetCellValue(voltageData.average.ToString("F2"));
-                    newRow.CreateCell(3).SetCellValue(voltageData.upper.ToString("F2"));
-                    newRow.CreateCell(4).SetCellValue(voltageData.lower.ToString("F2"));
+                    newRow.CreateCell(2).SetCellValue(voltageData.average);
+                    newRow.CreateCell(3).SetCellValue(voltageData.upper);
+                    newRow.CreateCell(4).SetCellValue(voltageData.lower);
 
                     // 写入文件
                     using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
@@ -302,13 +302,13 @@ namespace upper_com
             {
                 List<double> list = all.voltageList;
                 double mean = list.Average();
-                voltage.average = mean;
+                voltage.average = mean.ToString("F2");
                 // Calculate standard deviation
                 double stdDev = (double)Math.Sqrt(list.Select(x => Math.Pow(x - mean, 2)).Average());
 
                 // Calculate limits
-                voltage.lower = mean - k * stdDev;
-                voltage.upper = mean + k * stdDev;
+                voltage.lower = (mean - k * stdDev).ToString("F2");
+                voltage.upper = (mean + k * stdDev).ToString("F2");
             }
 
             UpdateVoltagetData(voltage);

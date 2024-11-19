@@ -109,6 +109,19 @@ namespace upper_com
             return null;
         }
 
+        public byte[] Read(long count)
+        {
+            try
+            {
+                return mbSession.RawIO.Read(count);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error receiving data: {ex.Message}");
+            }
+            return null;
+        }
+
         public void CancelConnection()
         {
             cancellationTokenSource.Cancel(); // 请求取消连接操作

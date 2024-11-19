@@ -14,18 +14,18 @@ namespace upper_com
         // 压力传送信号
         public bool voltageTransformSignal { get; set; }
 
-        public double average { get; set; }
+        public string average { get; set; }
 
-        public double upper { get; set; }
+        public string upper { get; set; }
 
-        public double lower { get; set; }
+        public string lower { get; set; }
 
         public VoltageDataTable()
         {
 
         }
 
-        public VoltageDataTable(int currentNo, bool voltageTransformSignal, float average, float upper, float lower)
+        public VoltageDataTable(int currentNo, bool voltageTransformSignal, string average, string upper, string lower)
         {
             this.currentNo = currentNo;
             this.voltageTransformSignal = voltageTransformSignal;

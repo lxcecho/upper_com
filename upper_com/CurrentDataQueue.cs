@@ -257,24 +257,24 @@ namespace upper_com
                 double stableLimit = stableAverage - k * standardDeviationS;
                 double stableUpper = stableAverage + k * standardDeviationS;
 
-                currentData.smoothAverage = stableAverage;
-                currentData.smoothLower = stableLimit;
-                currentData.smoothUpper = stableUpper;
+                currentData.smoothAverage = stableAverage.ToString("F2");
+                currentData.smoothLower = stableLimit.ToString("F2");
+                currentData.smoothUpper = stableUpper.ToString("F2");
             }
 
             List<double> mutationList = all.mutationList;
             if (mutationList != null && mutationList.Count > 0)
             {
                 double mutationAverage = mutationList.Average();
-                double varianceM = stableList.Average(v => Math.Pow(v - mutationAverage, 2));
+                double varianceM = mutationList.Average(v => Math.Pow(v - mutationAverage, 2));
                 double standardDeviationM = Math.Sqrt(varianceM);
 
                 double mutationLimit = mutationAverage - k * standardDeviationM;
                 double mutationUpper = mutationAverage + k * standardDeviationM;
 
-                currentData.mutationAverage = double.Parse($"{mutationAverage:F2}");
-                currentData.mutationLower = double.Parse($"{mutationLimit:F2}");
-                currentData.mutationUpper = double.Parse($"{mutationUpper:F2}");
+                currentData.mutationAverage = mutationAverage.ToString("F2");
+                currentData.mutationLower = mutationLimit.ToString("F2");
+                currentData.mutationUpper = mutationUpper.ToString("F2");
             }
 
             UpdateCurrentData(currentData);
@@ -324,9 +324,9 @@ namespace upper_com
                         foreach (var cur in stableList)
                         {
                             IRow newRow = sheet.CreateRow(++lastRowNum);
-                            newRow.CreateCell(0).SetCellValue(all.serialNo);
-                            newRow.CreateCell(1).SetCellValue(cur);
-                            newRow.CreateCell(2).SetCellValue(all.totalDuration);
+                            newRow.CreateCell(0).SetCellValue(all.serialNo.ToString());
+                            newRow.CreateCell(1).SetCellValue(cur.ToString());
+                            newRow.CreateCell(2).SetCellValue(all.totalDuration.ToString());
                         }
 
                         // 写入文件
@@ -341,18 +341,6 @@ namespace upper_com
                     }
                 }
             });
-        }
-
-        void WriteData(IEnumerable<double> dataList, int serialNo, double dataDuration, double totalDuration, ISheet sheet, int lastRowNum)
-        {
-            foreach (var cur in dataList)
-            {
-                IRow newRow = sheet.CreateRow(++lastRowNum);
-                newRow.CreateCell(0).SetCellValue(serialNo); // Write serialNo in the first column
-                newRow.CreateCell(1).SetCellValue(cur);          // Write current value in the second column
-                newRow.CreateCell(2).SetCellValue(dataDuration);     // Write duration in the third column
-                newRow.CreateCell(3).SetCellValue(totalDuration);  // Write total duration in the fourth column
-            }
         }
 
         private async void UpdateCurrentData(CurrentDataTable currentData)
@@ -437,14 +425,14 @@ namespace upper_com
                         // 追加数据
                         newRow.CreateCell(0).SetCellValue(currentData.serialNo);
                         newRow.CreateCell(1).SetCellValue(currentData.curDate);
-                        //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur().ToString("F2"));
-                        newRow.CreateCell(2).SetCellValue(currentData.smoothLower.ToString("F2"));
-                        newRow.CreateCell(3).SetCellValue(currentData.smoothUpper.ToString("F2"));
-                        newRow.CreateCell(4).SetCellValue(currentData.smoothLower.ToString("F2"));
-                        //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur().ToString("F2"));
-                        newRow.CreateCell(5).SetCellValue(currentData.mutationAverage.ToString("F2"));
-                        newRow.CreateCell(6).SetCellValue(currentData.mutationUpper.ToString("F2"));
-                        newRow.CreateCell(7).SetCellValue(currentData.smoothLower.ToString("F2"));
+                        //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
+                        newRow.CreateCell(2).SetCellValue(currentData.smoothAverage);
+                        newRow.CreateCell(3).SetCellValue(currentData.smoothUpper);
+                        newRow.CreateCell(4).SetCellValue(currentData.smoothLower);
+                        //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
+                        newRow.CreateCell(5).SetCellValue(currentData.mutationAverage);
+                        newRow.CreateCell(6).SetCellValue(currentData.mutationUpper);
+                        newRow.CreateCell(7).SetCellValue(currentData.mutationLower);
                     }
 
                     // 写入文件

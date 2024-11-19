@@ -18,6 +18,15 @@ namespace upper_com
             textBox2.TextChanged += TextBox_TextChanged;
             textBox3.TextChanged += TextBox_TextChanged;
             textBox4.TextChanged += TextBox_TextChanged;
+
+            // 设置控件加载事件
+            this.Load += IpInputControl_Load;
+        }
+
+        private void IpInputControl_Load(object sender, EventArgs e)
+        {
+            // 设置默认IP地址
+            IpAddress = "192.168.0.1";
         }
 
         public string IpAddress
