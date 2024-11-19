@@ -564,16 +564,15 @@ namespace upper_com
 
         private void myBtn_Click(object sender, EventArgs e)
         {
-            MyButton button = sender as MyButton;
-            bool hasError = false; // 初始化错误标志
-
+            // 本地调试
             MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
-            test.TestData();
+            //test.TestData();
 
-            PLCDetection testPlc = new PLCDetection(this.dataGridView2);
-            testPlc.TestData();
+            //PLCDetection testPlc = new PLCDetection(this.dataGridView2);
+            //testPlc.TestData();
 
-            // 1. 参数校验
+            MyButton button = sender as MyButton;
+
             InputData inputData = new InputData();
             inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
             inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
@@ -581,13 +580,16 @@ namespace upper_com
             if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
             {
                 MessageBox.Show("15组数据未设置，请先设置再点击开始！！！");
-                hasError = true; // 设置错误标志
+                button.IsPlaying = true;
                 return;
             }
+            
 
             // 要两个服务端都连接上才能进行开始采集数据
-            /*if (!hasError && multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
+            /*if (multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
             {
+                MyButton button = sender as MyButton;
+
                 if (button.IsPlaying)
                 {
                     //MessageBox.Show("暂停");
@@ -603,9 +605,7 @@ namespace upper_com
 
                     if (multimeterDetection != null)
                     {
-                        // multimeterDetection.SetInputDate(inputData);
                         multimeterDetection.SetIsPlaying(false);
-                        //_ = multimeterDetection.StartCollectingData();
                     }
                 }
                 else
@@ -614,6 +614,18 @@ namespace upper_com
                     this.myLED3.IsFlash = true;
                     this.myLED3.LedStatus = true;
                     this.myLED3.LedTrueColor = Color.Green;
+
+                    // 1. 参数校验
+                    InputData inputData = new InputData();
+                    inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
+                    inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
+                    inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
+                    if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
+                    {
+                        MessageBox.Show("15组数据未设置，请先设置再点击开始！！！");
+                        test.SetIsPlaying(false);
+                        return;
+                    }
 
                     if (plcDetection != null)
                     {
@@ -631,12 +643,6 @@ namespace upper_com
                     }
                 }
             }*/
-
-            // 切换按钮状态
-            if (!hasError)
-            {
-                button.IsPlaying = !button.IsPlaying;
-            }
         }
 
         private void syncBtn_Click(object sender, EventArgs e)
