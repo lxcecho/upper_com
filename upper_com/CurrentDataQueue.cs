@@ -133,7 +133,6 @@ namespace upper_com
         // allowOutOfBounds: 是否允许超出限值的数据入队列
         public void AddData(double i1, double i2, CurrentData all, bool allowOutOfBounds = false)
         {
-
             // 队列满
             if (queue.Count == maxSize)
             {
@@ -236,7 +235,7 @@ namespace upper_com
         // 处理数据元，用来画T曲线
         private async void CurrentDataProcessed(CurrentData all)
         {
-            Console.WriteLine("OnDataUpdated called.");
+            // Console.WriteLine("CurrentDataProcessed called.");
 
             // 在这里处理更新的数据
             var currentData = new CurrentDataTable();

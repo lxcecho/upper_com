@@ -1,8 +1,10 @@
-﻿using S7.Net;
+﻿using OfficeOpenXml.FormulaParsing.LexicalAnalysis;
+using S7.Net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -14,6 +16,8 @@ namespace upper_com
 
         private string plcIp;
 
+        private CancellationTokenSource cancellationTokenSource;
+
         public bool Connected { get; set; }
 
         /// <summary>
@@ -22,6 +26,7 @@ namespace upper_com
         public S7NetClient(string plcIp)
         {
             this.plcIp = plcIp;
+            this.cancellationTokenSource = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -29,24 +34,25 @@ namespace upper_com
         /// </summary>
         /// <param name="MonitorData">开始地址，长度</param>
         /// <returns></returns>
-        public bool Open()
+        public async Task<bool> OpenAsync(CancellationToken cancellationToken)
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // 创建 PLC 连接对象，这里以西门子 S7-1200 为例
-                // 指定CPU类型、IP地址和机架、插槽号
-                // Plc plc = new Plc(CpuType.S71200, plcIp, 0, 1);
-                plc = new Plc(CpuType.S71200, this.plcIp, 0, 1);
-                plc.Open();
-                Connected = true;
-                return true;
+                try
+                {
+                    plc = new Plc(CpuType.S71200, this.plcIp, 0, 1);
+                    plc.Open();
+                    Connected = true;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"PLC连接失败！！！发生错误: {ex}" + ", 请检查设备和网络情况！！！");
+                    // 等待一段时间后重试连接
+                    await Task.Delay(5000, cancellationToken); // 每5秒重试一次，支持取消
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"服务器启动失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Console.WriteLine("lxcecho: " + ex);
-                return false;
-            }
+            return false;
         }
 
         public string Close()
@@ -84,8 +90,9 @@ namespace upper_com
         {
             try
             {
-                Console.WriteLine("lxcecho: " + plc.ReadBytes(DataType.DataBlock, 1, 0, 4));
-                return plc.Read(addr);
+                object result = plc.Read(addr);
+                Console.WriteLine("lxcecho: " + result);
+                return result;
             }
             catch (Exception ex)
             {
@@ -107,6 +114,11 @@ namespace upper_com
                 Console.WriteLine("lxcecho: " + ex);
                 return "-1";
             }
+        }
+
+        public void CancelReconnect()
+        {
+            cancellationTokenSource.Cancel();
         }
     }
 }

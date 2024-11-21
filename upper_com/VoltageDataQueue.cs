@@ -95,8 +95,8 @@ namespace upper_com
 
             if (!File.Exists(voltageFilePath))
             {
-                //MessageBox.Show("当天记录的电流数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                Console.WriteLine("当天记录的电流数据文件文件不存在，表格数据为空。");
+                //MessageBox.Show("当天记录的电压数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Console.WriteLine("当天记录的电压数据文件文件不存在，表格数据为空。");
                 return;
             }
 

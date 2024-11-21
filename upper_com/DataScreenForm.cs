@@ -243,8 +243,8 @@ namespace upper_com
 
             if (!File.Exists(voltageFilePath))
             {
-                //MessageBox.Show("当天记录的电流数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                Console.WriteLine("当天记录的电流数据文件文件不存在，表格数据为空。");
+                //MessageBox.Show("当天记录的电压数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Console.WriteLine("当天记录的电压数据文件文件不存在，表格数据为空。");
                 return;
             }
 
@@ -564,32 +564,54 @@ namespace upper_com
 
         private void myBtn_Click(object sender, EventArgs e)
         {
-            // 本地调试
-            MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
+            #region 本地调试
+            //MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
             //test.TestData();
 
             //PLCDetection testPlc = new PLCDetection(this.dataGridView2);
             //testPlc.TestData();
+            #endregion
 
             MyButton button = sender as MyButton;
 
+            #region PLC调试
             InputData inputData = new InputData();
+            inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
+            inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
+
+            if (plcDetection != null)
+            {
+                plcDetection.SetPlaying(true);
+                plcDetection.SetInputDate(inputData);
+                _ = plcDetection.PlcListenerHandler();
+            }
+            #endregion
+
+            #region 万用表调试
+            // 1. 参数校验
+            /*InputData inputData = new InputData();
             inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
             inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
             inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
             if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
             {
-                MessageBox.Show("15组数据未设置，请先设置再点击开始！！！");
+                MessageBox.Show("15组时间数据未设置，请先设置时间数据！！！");
                 button.IsPlaying = true;
                 return;
             }
-            
+            if (multimeterDetection != null)
+            {
+                multimeterDetection.SetInputDate(inputData);
+                multimeterDetection.SetIsPlaying(true);
+                _ = multimeterDetection.MultimeterListenerHandler();
+            }*/
+            #endregion
 
+
+            #region 正式环境
             // 要两个服务端都连接上才能进行开始采集数据
             /*if (multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
             {
-                MyButton button = sender as MyButton;
-
                 if (button.IsPlaying)
                 {
                     //MessageBox.Show("暂停");
@@ -597,7 +619,6 @@ namespace upper_com
                     this.myLED3.LedStatus = true;
                     this.myLED3.LedTrueColor = Color.Green;
 
-                    // TODO PLC Test
                     if (plcDetection != null)
                     {
                         plcDetection.SetPlaying(false);
@@ -622,9 +643,16 @@ namespace upper_com
                     inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
                     if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
                     {
-                        MessageBox.Show("15组数据未设置，请先设置再点击开始！！！");
-                        test.SetIsPlaying(false);
+                        MessageBox.Show("15组时间数据未设置，请先设置时间数据！！！");
+                        button.IsPlaying = true;
                         return;
+                    }
+
+                    if (multimeterDetection != null)
+                    {
+                        multimeterDetection.SetInputDate(inputData);
+                        multimeterDetection.SetIsPlaying(true);
+                        _ = multimeterDetection.MultimeterListenerHandler();
                     }
 
                     if (plcDetection != null)
@@ -633,16 +661,9 @@ namespace upper_com
                         plcDetection.SetInputDate(inputData);
                         _ = plcDetection.PlcListenerHandler();
                     }
-
-                    // TODO PLC Test
-                    if (multimeterDetection != null)
-                    {
-                        multimeterDetection.SetInputDate(inputData);
-                        multimeterDetection.SetIsPlaying(true);
-                        _ = multimeterDetection.MultimeterListenerHandler();
-                    }
                 }
             }*/
+            #endregion
         }
 
         private void syncBtn_Click(object sender, EventArgs e)
@@ -675,7 +696,7 @@ namespace upper_com
             }
             else
             {
-                MessageBox.Show("请输入正确格式的数据，例如：(500,1000)");
+                MessageBox.Show("请输入正确格式的数据，例如：(500,1000),(200,8000)");
             }
         }
 
@@ -697,7 +718,31 @@ namespace upper_com
                 return;
             }
 
-            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
+            #region TODO 万用表调试
+            /*multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
+            if (multimeterDetection.MultimerOpen())
+            {
+                this.multimerLabel.Text = "万用表已连接!";
+                this.multimerLabel.ForeColor = Color.DarkOliveGreen;
+                // 连接成功之后，立即下发初始化指令
+                multimeterDetection.SendConfigCommand();
+            }*/
+            #endregion
+
+            #region TODO PLC 调试
+            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1);
+
+            plcDetection = new PLCDetection(plcIpAddress, multimeterDetection, this.myLED1, this.dataGridView2);
+            bool a = plcDetection.PlcOpenAsync().Result;
+            if (a)
+            {
+                this.plcLabel.Text = "PLC已连接!";
+                this.plcLabel.ForeColor = Color.DarkOliveGreen;
+            }
+            #endregion
+
+            #region 正式环境
+            /*multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
             if (multimeterDetection.MultimerOpen())
             {
                 this.multimerLabel.Text = "万用表已连接!";
@@ -707,11 +752,13 @@ namespace upper_com
             }
 
             plcDetection = new PLCDetection(plcIpAddress, multimeterDetection, this.myLED1, this.dataGridView2);
-            if (plcDetection.PlcOpen())
+            bool a = plcDetection.PlcOpenAsync().Result;
+            if (a)
             {
                 this.plcLabel.Text = "PLC已连接!";
                 this.plcLabel.ForeColor = Color.DarkOliveGreen;
-            }
+            }*/
+            #endregion
         }
 
         private bool IsValidIp(string ipAddress)

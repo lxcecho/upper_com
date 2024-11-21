@@ -24,8 +24,6 @@ namespace upper_com
 
         private CancellationTokenSource cancellationTokenSource;
 
-        private MyLED myLED2;
-
         public bool Connected { get; set; }
 
         public VisaClient(string multimerIp)
@@ -59,24 +57,11 @@ namespace upper_com
                         Connected = true;
                         Console.WriteLine("万用表连接成功...");
                     }
-                    catch (OperationCanceledException)
-                    {
-                        Connected = false;
-                        Console.WriteLine("连接操作被取消！！！");
-                        break; // 退出循环
-                    }
-                    catch (VisaException ex)
-                    {
-                        Connected = false;
-                        Console.WriteLine("万用表连接失败！！！VISA错误: " + ex.Message);
-                        // MessageBox.Show($"服务器启动失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        await Task.Delay(1000, token); // 每秒重试一次，支持取消
-                    }
                     catch (Exception ex)
                     {
                         Connected = false;
-                        Console.WriteLine("万用表连接失败！！！发生错误: " + ex.Message);
-                        await Task.Delay(1000, token); // 每秒重试一次，支持取消
+                        MessageBox.Show("万用表连接失败！！！发生错误: " + ex.Message + ", 请检查设备和网络情况！！！");
+                        await Task.Delay(5000, token); // 每5秒重试一次，支持取消
                     }
                 }
             }

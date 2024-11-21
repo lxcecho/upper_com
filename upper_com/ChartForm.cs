@@ -44,7 +44,7 @@ namespace upper_com
             // 设置 X 轴为时间类型
             chartArea.AxisX.Minimum = xValues.Min();
             chartArea.AxisX.Maximum = xValues.Max();
-            chartArea.AxisX.Interval = 0.1; // 设置间隔
+            chartArea.AxisX.Interval = 1.0; // 设置间隔
 
             chart.ChartAreas.Add(chartArea);
 
