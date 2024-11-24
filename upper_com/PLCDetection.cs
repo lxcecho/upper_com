@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using DotNetSiemensPLCToolBoxLibrary.Communication.Library;
 
 namespace upper_com
 {
@@ -105,6 +106,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 MessageBox.Show($"数据采集出错了，请检查一下PLC连接！！！！: {ex.Message}");
             }
         }
@@ -119,164 +121,100 @@ namespace upper_com
                 {
                     VoltageData all = new VoltageData();
 
-                    //DebugByByte();
-                    DebugBySTR();
+                    // Read Int at offset 0.0 (电流测试编号)
+                    int currentTestNumber = s7NetClient.ReadBytesToInt(0, 2);
+                    Console.WriteLine("电流测试编号: " + currentTestNumber);
+                    all.CurrentNo = currentTestNumber;
+                    multimeterDetection.SetCurrentSerialNo(currentTestNumber);
 
-                    // 总 T
-                    /*all.duration = multimeterDetection.T;
-                    double average = voltageList.Average();
-                    voltageDataQueue.AddData(average, all);*/
+                    // Read Bool at offset 2.0 (电流测试开始)
+                    bool currentTestStart = Convert.ToBoolean(s7NetClient.Read("DB33.DBX2.0"));
+                    Console.WriteLine("电流测试Start: " + currentTestStart);
+                    all.CurrentStartSignal = currentTestStart;
+                    if (currentTestStart)
+                    {
+                        // 收到起始信号
+                        multimeterDetection.SetSignal(true);
+                    }
+
+                    // Read Bool at offset 2.1 (电流测试结束)
+                    bool currentTestEnd = Convert.ToBoolean(s7NetClient.Read("DB33.DBX2.1"));
+                    Console.WriteLine("电流测试结束: " + currentTestEnd);
+                    all.CurrentEndSignal = currentTestEnd;
+                    if (currentTestEnd)
+                    {
+                        // TODO 停止收集万用表上报数据
+                        multimeterDetection.SetSignal(false);
+                    }
+
+                    // Read Bool at offset 2.2 (压力传送结束)
+                    bool voltageTransferEnd = Convert.ToBoolean(s7NetClient.Read("DB33.DBX2.2"));
+                    Console.WriteLine("压力传送结束: " + voltageTransferEnd);
+                    all.VoltageTransformSignal = voltageTransferEnd;
+
+                    double[] voltageList = new double[15]; ;
+
+                    // Read Real values at offsets 4.0 to 60.0 (压力当前值1 to 压力当前值15)
+                    int startByteAddress = 4; // 压力值1的起始字节地址
+                    for (int i = 0; i < 15; i++)
+                    {
+                        float voltageValue = s7NetClient.ReadBytesToFloat(startByteAddress + i * 4, 4);
+                        Console.WriteLine($"压力当前值{i + 1}: " + voltageValue);
+                        voltageList[i] = voltageValue;
+
+                    }
+                    all.Pressures = voltageList;
+
+                    _ = voltageDataQueue.AddData(all);
                 }
-            }
-        }
-
-        private void DebugByByte()
-        {
-            byte[] deviceValue;
-
-            VoltageData all = new VoltageData();
-
-            // Read Int at offset 0.0 (电流测试编号)
-            if (s7NetClient.Read(1, 0, 2, out deviceValue))
-            {
-                int currentTestNumber = BitConverter.ToInt16(deviceValue, 0);
-                Console.WriteLine("电流测试编号: " + currentTestNumber);
-
-                all.currentNo = currentTestNumber;
-                multimeterDetection.SetCurrentSerialNo(currentTestNumber);
-            }
-
-            // Read Bool at offset 2.0 (电流测试开始)
-            if (s7NetClient.Read(1, 2, 1, out deviceValue))
-            {
-                bool currentTestStart = deviceValue[0] != 0;
-                Console.WriteLine("电流测试开始: " + currentTestStart);
-                all.currentStartSignal = currentTestStart;
-                if (currentTestStart)
-                {
-                    // 收到起始信号
-                    multimeterDetection.SetSignal(currentTestStart);
-                }
-            }
-
-            // Read Bool at offset 2.1 (电流测试结束)
-            if (s7NetClient.Read(1, 3, 1, out deviceValue))
-            {
-                bool currentTestEnd = deviceValue[0] != 0;
-                Console.WriteLine("电流测试结束: " + currentTestEnd);
-                all.currentEndSignal = currentTestEnd;
-                if (currentTestEnd)
-                {
-                    // TODO 停止收集万用表上报数据
-                    multimeterDetection.SetSignal(false);
-                }
-            }
-
-            // Read Bool at offset 2.2 (压力传送结束)
-            if (s7NetClient.Read(1, 4, 1, out deviceValue))
-            {
-                bool pressureTransferEnd = deviceValue[0] != 0;
-                all.voltageTransformSignal = pressureTransferEnd;
-                Console.WriteLine("压力传送结束: " + pressureTransferEnd);
-            }
-
-            List<double> voltageList = new List<double>();
-
-            // Read Real values at offsets 4.0 to 60.0 (压力当前值1 to 压力当前值15)
-            for (int i = 0; i < 15; i++)
-            {
-                int offset = 8 + i * 4;
-                if (s7NetClient.Read(1, offset, 4, out deviceValue))
-                {
-                    float pressureValue = BitConverter.ToSingle(deviceValue, 0);
-                    Console.WriteLine($"压力当前值{i + 1}: " + pressureValue);
-                    voltageList.Add(pressureValue);
-                }
-            }
-
-            // TODO 处理压力数据
-            if (voltageList != null && voltageList.Count > 0)
-            {
-                all.voltageList = voltageList;
             }
         }
 
         private void DebugBySTR()
         {
-            // 读取整数（Int）类型
-            int 电流测试记录 = (int)s7NetClient.Read("DB1.DBD0");
+            // Read Int at offset 0.0
+            object curNo = s7NetClient.Read("DB33.DBD0");
+            Console.WriteLine($"电流测试记录: {curNo}");
 
-            // 读取布尔（Bool）类型
-            bool 压力测试标志 = (bool)s7NetClient.Read("DB1.DBX4.0");
-            bool 电流测试标志 = (bool)s7NetClient.Read("DB1.DBX4.1");
+            // Read Bool at offset 4.0
+            object IFlag = s7NetClient.Read("DB33.DBX4.0");
+            Console.WriteLine($"电流测试标志: {IFlag}");
 
-            // 读取实数（Real）类型
-            double 压力测试值 = Convert.ToDouble(s7NetClient.Read("DB1.DBD8"));
-            double 电流测试值 = Convert.ToDouble(s7NetClient.Read("DB1.DBD12"));
-            double 压力测试值2 = Convert.ToDouble(s7NetClient.Read("DB1.DBD16"));
-            double 压力测试值3 = Convert.ToDouble(s7NetClient.Read("DB1.DBD20"));
-            double 压力测试值4 = Convert.ToDouble(s7NetClient.Read("DB1.DBD24"));
-            double 压力测试值5 = Convert.ToDouble(s7NetClient.Read("DB1.DBD28"));
-            double 压力测试值6 = Convert.ToDouble(s7NetClient.Read("DB1.DBD32"));
-            double 压力测试值7 = Convert.ToDouble(s7NetClient.Read("DB1.DBD36"));
-            double 压力测试值8 = Convert.ToDouble(s7NetClient.Read("DB1.DBD40"));
-            double 压力测试值9 = Convert.ToDouble(s7NetClient.Read("DB1.DBD44"));
-            double 压力测试值10 = Convert.ToDouble(s7NetClient.Read("DB1.DBD48"));
-            double 压力测试值11 = Convert.ToDouble(s7NetClient.Read("DB1.DBD52"));
-            double 压力测试值12 = Convert.ToDouble(s7NetClient.Read("DB1.DBD56"));
-            double 压力测试值13 = Convert.ToDouble(s7NetClient.Read("DB1.DBD60"));
+            object VFlag = s7NetClient.Read("DB33.DBX4.1");
+            Console.WriteLine($"压力测试标志: {VFlag}");
 
-            // 输出读取的值
-            Console.WriteLine($"电流测试记录: {电流测试记录}");
-            Console.WriteLine($"压力测试标志: {压力测试标志}");
-            Console.WriteLine($"电流测试标志: {电流测试标志}");
-            Console.WriteLine($"压力测试值: {压力测试值}");
-            Console.WriteLine($"电流测试值: {电流测试值}");
-            Console.WriteLine($"压力测试值2: {压力测试值2}");
-            Console.WriteLine($"压力测试值3: {压力测试值3}");
-            Console.WriteLine($"压力测试值4: {压力测试值4}");
-            Console.WriteLine($"压力测试值5: {压力测试值5}");
-            Console.WriteLine($"压力测试值6: {压力测试值6}");
-            Console.WriteLine($"压力测试值7: {压力测试值7}");
-            Console.WriteLine($"压力测试值8: {压力测试值8}");
-            Console.WriteLine($"压力测试值9: {压力测试值9}");
-            Console.WriteLine($"压力测试值10: {压力测试值10}");
-            Console.WriteLine($"压力测试值11: {压力测试值11}");
-            Console.WriteLine($"压力测试值12: {压力测试值12}");
-            Console.WriteLine($"压力测试值13: {压力测试值13}");
+            // Read Real values at offsets 4.0 to 60.0
+            for (int i = 0; i < 15; i++)
+            {
+                object voltageValue = s7NetClient.Read($"DB33.DBD{4 + i * 4}");
+                Console.WriteLine($"压力测试值{i + 1}: {voltageValue}");
+            }
         }
 
         public async Task TestData()
         {
-            voltageDataQueue = new VoltageDataQueue(this.dataGridView2, 20, 3);
 
-            List<double> voltageList = new List<double>();
+            int numberOfQueues = 2;
+            List<VoltageDataQueue> queues = new List<VoltageDataQueue>();
 
-            VoltageData all = new VoltageData();
+            for (int i = 0; i < numberOfQueues; i++)
+            {
+                queues.Add(new VoltageDataQueue(this.dataGridView2));
+            }
 
-            voltageList.Add(0.99877156E-03 * 3000);
-            voltageList.Add(0.89877156E-03 * 3000);
-            voltageList.Add(0.98877156E-03 * 3000);
-            voltageList.Add(0.79877156E-03 * 3000);
-            voltageList.Add(0.91877156E-03 * 3000);
-            voltageList.Add(0.92877156E-03 * 3000);
-            voltageList.Add(0.93877156E-03 * 3000);
-            voltageList.Add(0.89877156E-03 * 3000);
-            voltageList.Add(0.94877156E-03 * 3000);
-            voltageList.Add(0.90877156E-03 * 3000);
-
-            all.duration = 2.0;
-
-            // 计算平稳段和突变段的平均值
-            double average = voltageList.Count > 0 ? voltageList.Average() : 0;
-            // 将所有数据都添加到 DataQueue
-            all.voltageList = voltageList;
-            all.currentNo = 1001;
-            all.currentStartSignal = true;
-            all.currentEndSignal = false;
-            all.voltageTransformSignal = true;
-
-            voltageDataQueue.AddData(average, all);
+            // 模拟数据输入
+            Random random = new Random();
+            for (int i = 0; i < 100; i++)
+            {
+                double[] pressures = new double[15];
+                for (int j = 0; j < 15; j++)
+                {
+                    pressures[j] = random.NextDouble() * 100; // 生成随机数据
+                }
+                VoltageData newData = new VoltageData(1001, true, false, true, pressures);
+                Console.WriteLine("voldata=" + newData.ToString());
+                _ = queues[i % numberOfQueues].AddData(newData);
+            }
         }
     }
 }

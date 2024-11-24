@@ -1,4 +1,5 @@
 ﻿using Microsoft.Office.Interop.Excel;
+using NPOI.POIFS.Crypt.Dsig;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;
@@ -24,7 +25,9 @@ namespace upper_com
         /**
          * 管理每个队列的数据，计算均值和标准差，并检查数据是否在限值内
          */
-        private Queue<(double i1, double i2)> queue;
+        private Queue<CurrentData> curQueue;
+
+        private Queue<(double meanI1, double meanI2)> meanHistory;
 
         // 队列的最大大小，默认为 20
         private int maxSize;
@@ -32,19 +35,43 @@ namespace upper_com
         // 用于计算限值的系数，默认为 3
         private int k;
 
-        private List<double> averageSmoothHistory;
-        private List<double> averageMutationHistory;
+        IWorkbook workbook;
+        ISheet sheet1;
+        ISheet sheet2;
+
 
         public CurrentDataQueue(DataGridView dataGridView1, int size = 20, int kValue = 3)
         {
-            queue = new Queue<(double, double)>();
+            curQueue = new Queue<CurrentData>(maxSize);
             maxSize = size;
             k = kValue;
-            averageSmoothHistory = new List<double>();
-            averageMutationHistory = new List<double>();
+            this.meanHistory = new Queue<(double, double)>(20);
 
             this.dataGridView1 = dataGridView1;
             InitializeFileWatcher();
+
+            workbook = new XSSFWorkbook();
+            sheet1 = workbook.CreateSheet("Sheet1");
+            sheet2 = workbook.CreateSheet("Sheet2");
+
+            // 写入标题行
+            IRow headerRow = sheet1.CreateRow(0);
+            headerRow.CreateCell(0).SetCellValue("测试编号");
+            headerRow.CreateCell(1).SetCellValue("时间");
+            headerRow.CreateCell(2).SetCellValue("I1均值");
+            headerRow.CreateCell(3).SetCellValue("I1上限");
+            headerRow.CreateCell(4).SetCellValue("I1下限");
+            headerRow.CreateCell(5).SetCellValue("I2均值");
+            headerRow.CreateCell(6).SetCellValue("I2上限");
+            headerRow.CreateCell(7).SetCellValue("I2下限");
+
+            // 写入Sheet2表头
+            IRow headerRow2 = sheet2.CreateRow(0);
+            headerRow2.CreateCell(0).SetCellValue("序号");
+            for (int i = 0; i < 15; i++)
+            {
+                headerRow2.CreateCell(1 + i).SetCellValue($"电流{i + 1}组");
+            }
         }
 
         private void InitializeFileWatcher()
@@ -125,221 +152,178 @@ namespace upper_com
             }
             catch (IOException ex)
             {
+                Console.WriteLine(ex);
                 MessageBox.Show($"文件访问错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // 添加数据到队列中，并检查是否需要报警
-        // allowOutOfBounds: 是否允许超出限值的数据入队列
-        public void AddData(double i1, double i2, CurrentData all, bool allowOutOfBounds = false)
+        public void AddData(CurrentData all, bool allowOutOfBounds = false)
         {
             // 队列满
-            if (queue.Count == maxSize)
+            if (curQueue.Count == maxSize)
             {
-                // 计算I1的均值和标准差
-                double meanI1 = queue.Select(x => x.i1).Average();
-                double stdDevI1 = Math.Sqrt(queue.Select(x => Math.Pow(x.i1 - meanI1, 2)).Average());
-                double lowerLimitI1 = meanI1 - k * stdDevI1;
-                double upperLimitI1 = meanI1 + k * stdDevI1;
+                // Flatten the queue to calculate mean and standard deviation
+                var allPairs = curQueue.SelectMany(cd => cd.Curs).ToList();
+                var i1Values = allPairs.Select(x => x.i1).ToList();
+                var i2Values = allPairs.Select(x => x.i2).ToList();
+                double meanI1 = i1Values.Average();
+                double meanI2 = i2Values.Average();
+                double stdI1 = Math.Sqrt(i1Values.Average(v => Math.Pow(v - meanI1, 2)));
+                double stdI2 = Math.Sqrt(i2Values.Average(v => Math.Pow(v - meanI2, 2)));
 
-                // 计算I2的均值和标准差
-                double meanI2 = queue.Select(x => x.i2).Average();
-                double stdDevI2 = Math.Sqrt(queue.Select(x => Math.Pow(x.i2 - meanI2, 2)).Average());
-                double lowerLimitI2 = meanI2 - k * stdDevI2;
-                double upperLimitI2 = meanI2 + k * stdDevI2;
+                // Calculate limits
+                double lowerLimitI1 = meanI1 - k * stdI1;
+                double upperLimitI1 = meanI1 + k * stdI1;
+                double lowerLimitI2 = meanI2 - k * stdI2;
+                double upperLimitI2 = meanI2 + k * stdI2;
 
-                // 判断I1和I2是否在限值内 不在限值内，报警
-                if ((i1 < lowerLimitI1 || i1 > upperLimitI1) || (i2 < lowerLimitI2 || i2 > upperLimitI2))
+                // 在这里处理更新的数据
+                var currentData = new CurrentDataTable();
+
+                /* 初始化 CurrentData 对象的参数 */
+                int serialNo = all.SerialNo;
+                currentData.serialNo = serialNo;
+                currentData.curDate = DateTime.Now.ToString();
+                currentData.smoothAverage = meanI1.ToString("F2");
+                currentData.smoothLower = lowerLimitI1.ToString("F2");
+                currentData.smoothUpper = upperLimitI1.ToString("F2");
+                currentData.mutationAverage = meanI2.ToString("F2");
+                currentData.mutationLower = lowerLimitI2.ToString("F2");
+                currentData.mutationUpper = upperLimitI2.ToString("F2");
+
+                Console.WriteLine("CurrentDataProcessed called=" + currentData.ToString());
+
+                UpdateCurrentData(currentData);
+                WriteCurrentDataToFile(currentData);
+
+                // Check if data is within limits
+                foreach (var (i1, i2) in all.Curs)
                 {
-                    MessageBox.Show("预警：数据不在上下限范围内！！！！！！！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    if (!allowOutOfBounds)
+                    if (!(lowerLimitI1 <= i1 && i1 <= upperLimitI1 && lowerLimitI2 <= i2 && i2 <= upperLimitI2))
                     {
-                        return;
+                        allowOutOfBounds = true;
+                        MessageBox.Show($"警告：数据超出限值范围！电流值不在限值范围内。");
+                        break;
                     }
                 }
-                // 出队
-                queue.Dequeue();
+
+                if (allowOutOfBounds)
+                {
+                    return;
+                }
+
+                curQueue.Dequeue();
+
             }
 
-            // 入队
-            queue.Enqueue((i1, i2));
+            curQueue.Enqueue(all);
 
-            UpdateAverageHistory();
+            CheckConsecutiveChanges();
 
-            if (averageSmoothHistory.Count >= 20 && averageMutationHistory.Count >= 20)
-            {
-                CheckForTrend();
-            }
+            WriteCursDataToSheet2(all);
 
-            // 处理每一组数据元
-            CurrentDataProcessed(all);
+            SaveExcelFile();
         }
 
-        // 更新最近 20 个平均值的历史记录。
-        private void UpdateAverageHistory()
+        private void CheckConsecutiveChanges()
         {
-            double currentAverageI1 = queue.Select(x => x.i1).Average();
-            double currentAverageI2 = queue.Select(x => x.i2).Average();
-            averageSmoothHistory.Add(currentAverageI1);
-            averageMutationHistory.Add(currentAverageI2);
+            // Update mean history
+            var currentMeans = GetAverage();
 
-            if (averageSmoothHistory.Count > 20)
+            if (meanHistory.Count == 20)
             {
-                averageSmoothHistory.RemoveAt(0);
+                meanHistory.Dequeue();
             }
+            meanHistory.Enqueue(currentMeans);
 
-            if (averageMutationHistory.Count > 20)
+            // Check for consistent increase or decrease
+            if (meanHistory.Count == 20)
             {
-                averageMutationHistory.RemoveAt(0);
-            }
-        }
-
-        // 检查最近 20 个平均值是否有持续上升或下降的趋势。
-        private void CheckForTrend()
-        {
-            bool increasingI1 = true;
-            bool decreasingI1 = true;
-            bool increasingI2 = true;
-            bool decreasingI2 = true;
-
-            for (int i = 1; i < averageSmoothHistory.Count; i++)
-            {
-                if (averageSmoothHistory[i] <= averageSmoothHistory[i - 1])
+                var i1Means = meanHistory.Select(x => x.meanI1).ToList();
+                var i2Means = meanHistory.Select(x => x.meanI2).ToList();
+                if (i1Means.Zip(i1Means.Skip(1), (x, y) => x < y).All(b => b) ||
+                    i1Means.Zip(i1Means.Skip(1), (x, y) => x > y).All(b => b))
                 {
-                    increasingI1 = false;
+                    MessageBox.Show($"警告：i1的连续20个平均值都变大或变小！");
+                    Console.WriteLine("Alarm: i1 means consistently increasing or decreasing!");
                 }
-                if (averageSmoothHistory[i] >= averageSmoothHistory[i - 1])
+                if (i2Means.Zip(i2Means.Skip(1), (x, y) => x < y).All(b => b) ||
+                    i2Means.Zip(i2Means.Skip(1), (x, y) => x > y).All(b => b))
                 {
-                    decreasingI1 = false;
+                    MessageBox.Show($"警告：i1的连续20个平均值都变大或变小！");
+                    Console.WriteLine("Alarm: i2 means consistently increasing or decreasing!");
                 }
-            }
-
-            for (int i = 1; i < averageMutationHistory.Count; i++)
-            {
-                if (averageMutationHistory[i] <= averageMutationHistory[i - 1])
-                {
-                    increasingI2 = false;
-                }
-                if (averageMutationHistory[i] >= averageMutationHistory[i - 1])
-                {
-                    decreasingI2 = false;
-                }
-            }
-
-            if (increasingI1 || decreasingI1 || increasingI2 || decreasingI2)
-            {
-                MessageBox.Show("预警：数据连续20组均值增大/变小！！！！！！！", "警告", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
-        // 处理数据元，用来画T曲线
-        private async void CurrentDataProcessed(CurrentData all)
+        private void SaveExcelFile()
         {
-            // Console.WriteLine("CurrentDataProcessed called.");
-
-            // 在这里处理更新的数据
-            var currentData = new CurrentDataTable();
-
-            /* 初始化 CurrentData 对象的参数 */
-            int serialNo = all.serialNo;
-            currentData.serialNo = serialNo;
-            currentData.curDate = DateTime.Now.ToString();
-
-            List<double> stableList = all.stableList;
-
-            if (stableList != null && stableList.Count > 0)
+            lock (currentFileLock)
             {
-                double stableAverage = stableList.Average();
-                double varianceS = stableList.Average(v => Math.Pow(v - stableAverage, 2));
-                double standardDeviationS = Math.Sqrt(varianceS);
-
-                double stableLimit = stableAverage - k * standardDeviationS;
-                double stableUpper = stableAverage + k * standardDeviationS;
-
-                currentData.smoothAverage = stableAverage.ToString("F2");
-                currentData.smoothLower = stableLimit.ToString("F2");
-                currentData.smoothUpper = stableUpper.ToString("F2");
-            }
-
-            List<double> mutationList = all.mutationList;
-            if (mutationList != null && mutationList.Count > 0)
-            {
-                double mutationAverage = mutationList.Average();
-                double varianceM = mutationList.Average(v => Math.Pow(v - mutationAverage, 2));
-                double standardDeviationM = Math.Sqrt(varianceM);
-
-                double mutationLimit = mutationAverage - k * standardDeviationM;
-                double mutationUpper = mutationAverage + k * standardDeviationM;
-
-                currentData.mutationAverage = mutationAverage.ToString("F2");
-                currentData.mutationLower = mutationLimit.ToString("F2");
-                currentData.mutationUpper = mutationUpper.ToString("F2");
-            }
-
-            UpdateCurrentData(currentData);
-
-            // 异步将 curs 数据写入到 Excel 文件的第二个 Sheet
-            await WriteCursDataToSheet2Async(all);
-        }
-
-        private async Task WriteCursDataToSheet2Async(CurrentData all)
-        {
-            await Task.Run(() =>
-            {
-                lock (currentFileLock)
+                try
                 {
-                    try
+                    // 写入文件
+                    using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                     {
-                        IWorkbook workbook;
-                        ISheet sheet;
-
-                        // 打开或创建 Excel 文件
-                        if (!File.Exists(currentFilePath))
-                        {
-                            workbook = new XSSFWorkbook();
-                            workbook.CreateSheet("Sheet1"); // 创建第一个 Sheet
-                            workbook.CreateSheet("Sheet2"); // 创建第二个 Sheet
-                        }
-                        else
-                        {
-                            using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                            {
-                                workbook = new XSSFWorkbook(fs);
-                            }
-                        }
-
-                        // 获取第二个 Sheet
-                        sheet = workbook.GetSheet("Sheet2") ?? workbook.CreateSheet("Sheet2");
-
-                        // 找到最后一行
-                        int lastRowNum = sheet.LastRowNum;
-
-                        // 将元数据写入到第二个 Sheet
-                        List<double> stableList = all.stableList;
-                        List<double> mutationList = all.mutationList;
-
-                        stableList.AddRange(mutationList);
-
-                        foreach (var cur in stableList)
-                        {
-                            IRow newRow = sheet.CreateRow(++lastRowNum);
-                            newRow.CreateCell(0).SetCellValue(all.serialNo.ToString());
-                            newRow.CreateCell(1).SetCellValue(cur.ToString());
-                            newRow.CreateCell(2).SetCellValue(all.totalDuration.ToString());
-                        }
-
-                        // 写入文件
-                        using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                        {
-                            workbook.Write(fs);
-                        }
-                    }
-                    catch (IOException ex)
-                    {
-                        MessageBox.Show($"文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        workbook.Write(fs);
                     }
                 }
-            });
+                catch (IOException ex)
+                {
+                    Console.WriteLine(ex);
+                    MessageBox.Show($"{currentFilePath}文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    MessageBox.Show($"{currentFilePath}发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        public (double meanI1, double meanI2) GetAverage()
+        {
+            if (!curQueue.Any())
+            {
+                return (0, 0);
+            }
+
+            double totalI1 = 0;
+            double totalI2 = 0;
+            int totalCount = 0;
+
+            foreach (var data in curQueue)
+            {
+                foreach (var (i1, i2) in data.Curs)
+                {
+                    totalI1 += i1;
+                    totalI2 += i2;
+                    totalCount++;
+                }
+            }
+
+            double meanI1 = totalI1 / totalCount;
+            double meanI2 = totalI2 / totalCount;
+
+            return (meanI1, meanI2);
+        }
+
+
+        private void WriteCursDataToSheet2(CurrentData all)
+        {
+            // 找到最后一行
+            int lastRowNum = sheet2.LastRowNum;
+
+            // 将 serialNo 和 curs 数据写入到第二个 Sheet
+            IRow newRow = sheet2.CreateRow(++lastRowNum);
+
+            // 第一列写入电流测试编号
+            newRow.CreateCell(0).SetCellValue(all.SerialNo);
+
+            for (int i = 0; i < all.Curs.Count; i++)
+            {
+                newRow.CreateCell(1 + i).SetCellValue(all.Curs[i].ToString());
+            }
         }
 
         private async void UpdateCurrentData(CurrentDataTable currentData)
@@ -356,9 +340,6 @@ namespace upper_com
             {
                 AddCurrentDataToGridView(currentData);
             }
-
-            // 异步写入文件
-            await Task.Run(() => WriteCurrentDataToFile(currentData));
         }
 
         private void AddCurrentDataToGridView(CurrentDataTable currentData)
@@ -381,69 +362,22 @@ namespace upper_com
 
         private void WriteCurrentDataToFile(CurrentDataTable currentData)
         {
-            lock (currentFileLock)
+            // 找到最后一行
+            int lastRowNum = sheet1.LastRowNum;
+            IRow newRow = sheet1.CreateRow(lastRowNum + 1);
+            if (currentData != null)
             {
-                try
-                {
-                    IWorkbook workbook;
-                    ISheet sheet;
-
-                    if (!File.Exists(currentFilePath))
-                    {
-                        workbook = new XSSFWorkbook();
-                        sheet = workbook.CreateSheet("Sheet1");
-
-                        // 写入标题行
-                        IRow headerRow = sheet.CreateRow(0);
-                        headerRow.CreateCell(0).SetCellValue("测试编号");
-                        headerRow.CreateCell(1).SetCellValue("时间");
-                        //headerRow.CreateCell(2).SetCellValue("电流I1");
-                        headerRow.CreateCell(2).SetCellValue("I1均值");
-                        headerRow.CreateCell(3).SetCellValue("I1上限");
-                        headerRow.CreateCell(4).SetCellValue("I1下限");
-                        //headerRow.CreateCell(6).SetCellValue("电流I2");
-                        headerRow.CreateCell(5).SetCellValue("I2均值");
-                        headerRow.CreateCell(6).SetCellValue("I2上限");
-                        headerRow.CreateCell(7).SetCellValue("I2下限");
-                    }
-                    else
-                    {
-                        // 打开现有文件并追加数据
-                        using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                        {
-                            workbook = new XSSFWorkbook(fs);
-                            sheet = workbook.GetSheetAt(0);
-                        }
-                    }
-
-                    // 找到最后一行
-                    int lastRowNum = sheet.LastRowNum;
-                    IRow newRow = sheet.CreateRow(lastRowNum + 1);
-                    if (currentData != null)
-                    {
-                        // 追加数据
-                        newRow.CreateCell(0).SetCellValue(currentData.serialNo);
-                        newRow.CreateCell(1).SetCellValue(currentData.curDate);
-                        //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
-                        newRow.CreateCell(2).SetCellValue(currentData.smoothAverage);
-                        newRow.CreateCell(3).SetCellValue(currentData.smoothUpper);
-                        newRow.CreateCell(4).SetCellValue(currentData.smoothLower);
-                        //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
-                        newRow.CreateCell(5).SetCellValue(currentData.mutationAverage);
-                        newRow.CreateCell(6).SetCellValue(currentData.mutationUpper);
-                        newRow.CreateCell(7).SetCellValue(currentData.mutationLower);
-                    }
-
-                    // 写入文件
-                    using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                    {
-                        workbook.Write(fs);
-                    }
-                }
-                catch (IOException ex)
-                {
-                    MessageBox.Show($"文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                // 追加数据
+                newRow.CreateCell(0).SetCellValue(currentData.serialNo);
+                newRow.CreateCell(1).SetCellValue(currentData.curDate);
+                //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
+                newRow.CreateCell(2).SetCellValue(currentData.smoothAverage);
+                newRow.CreateCell(3).SetCellValue(currentData.smoothUpper);
+                newRow.CreateCell(4).SetCellValue(currentData.smoothLower);
+                //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
+                newRow.CreateCell(5).SetCellValue(currentData.mutationAverage);
+                newRow.CreateCell(6).SetCellValue(currentData.mutationUpper);
+                newRow.CreateCell(7).SetCellValue(currentData.mutationLower);
             }
         }
     }

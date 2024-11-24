@@ -47,6 +47,7 @@ namespace upper_com
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(ex);
                     MessageBox.Show($"PLC连接失败！！！发生错误: {ex}" + ", 请检查设备和网络情况！！！");
                     // 等待一段时间后重试连接
                     await Task.Delay(5000, cancellationToken); // 每5秒重试一次，支持取消
@@ -84,6 +85,38 @@ namespace upper_com
                 Connected = false;
                 return false;
             }
+        }
+
+        public float ReadBytesToFloat(int startAdd, int len)
+        {
+            try
+            {
+                byte[] buffer = plc.ReadBytes(DataType.DataBlock, 33, startAdd, len);
+                Array.Reverse(buffer);
+                return BitConverter.ToSingle(buffer, 0);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("lxcecho: " + ex);
+                Connected = false;
+            }
+            return float.NaN;
+        }
+
+        public int ReadBytesToInt(int startAdd, int len)
+        {
+            try
+            {
+                byte[] buffer = plc.ReadBytes(DataType.DataBlock, 33, startAdd, len);
+                Array.Reverse(buffer);
+                return BitConverter.ToInt32(buffer, 0);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("lxcecho: " + ex);
+                Connected = false;
+            }
+            return int.MaxValue;
         }
 
         public object Read(string addr)

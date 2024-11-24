@@ -35,6 +35,12 @@ namespace upper_com
 
         }
 
+        public override string ToString()
+        {
+            return "seriallNO=" + serialNo + ", smoothAverage=" + smoothAverage + "sUP=" + smoothUpper + ", smLo=" + smoothLower
+                + " myA=" + mutationAverage + ", mutaUp=" + mutationUpper + ", muLo=" + mutationLower; ;
+        }
+
         public CurrentDataTable(int serialNo, string curDate, /*string smoothCur,*/ string smoothAverage,
             string smoothUpper, string smoothLower, /*string mutationCur,*/
             string mutationAverage, string mutationUpper, string mutationLower)

@@ -31,10 +31,6 @@ namespace upper_com
         private void InitializeComponent()
         {
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle6 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle7 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle8 = new System.Windows.Forms.DataGridViewCellStyle();
@@ -44,15 +40,13 @@ namespace upper_com
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle12 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle13 = new System.Windows.Forms.DataGridViewCellStyle();
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle14 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle15 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle4 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle5 = new System.Windows.Forms.DataGridViewCellStyle();
             this.splitter1 = new System.Windows.Forms.Splitter();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.dataGridView2 = new System.Windows.Forms.DataGridView();
-            this.curNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.valtageTransformSignal = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.voltage1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.valUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.volLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.serialNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.curDate = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -64,25 +58,29 @@ namespace upper_com
             this.mutationLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
+            this.pmultimerIp = new upper_com.IpInputControl();
             this.label7 = new System.Windows.Forms.Label();
             this.collectLabel = new System.Windows.Forms.Label();
             this.multimerLabel = new System.Windows.Forms.Label();
             this.plcLabel = new System.Windows.Forms.Label();
             this.connBtn = new System.Windows.Forms.Button();
+            this.plcIp = new upper_com.IpInputControl();
             this.label2 = new System.Windows.Forms.Label();
+            this.myLED3 = new upper_com.MyLED();
+            this.myLED2 = new upper_com.MyLED();
             this.syncBtn = new System.Windows.Forms.Button();
             this.inputTextBox = new System.Windows.Forms.TextBox();
+            this.myBtn = new upper_com.MyButton();
+            this.myLED1 = new upper_com.MyLED();
             this.kLabel = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.nLabel = new System.Windows.Forms.Label();
             this.k_value = new System.Windows.Forms.TextBox();
             this.n_value = new System.Windows.Forms.TextBox();
-            this.pmultimerIp = new upper_com.IpInputControl();
-            this.plcIp = new upper_com.IpInputControl();
-            this.myLED3 = new upper_com.MyLED();
-            this.myLED2 = new upper_com.MyLED();
-            this.myBtn = new upper_com.MyButton();
-            this.myLED1 = new upper_com.MyLED();
+            this.curNo = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.voltage1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.valUpper = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.volLower = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
@@ -152,7 +150,6 @@ namespace upper_com
             this.dataGridView2.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView2.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.curNo,
-            this.valtageTransformSignal,
             this.voltage1,
             this.valUpper,
             this.volLower});
@@ -163,69 +160,18 @@ namespace upper_com
             this.dataGridView2.RowTemplate.Height = 27;
             this.dataGridView2.Size = new System.Drawing.Size(1093, 364);
             this.dataGridView2.TabIndex = 1;
-            //this.dataGridView2.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView2_CellContentClick);
-            // 
-            // curNo
-            // 
-            this.curNo.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.curNo.DefaultCellStyle = dataGridViewCellStyle2;
-            this.curNo.HeaderText = "电流测试编号";
-            this.curNo.MinimumWidth = 6;
-            this.curNo.Name = "curNo";
-            this.curNo.ReadOnly = true;
-            // 
-            // valtageTransformSignal
-            // 
-            this.valtageTransformSignal.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.valtageTransformSignal.DefaultCellStyle = dataGridViewCellStyle3;
-            this.valtageTransformSignal.HeaderText = "压力传送信号";
-            this.valtageTransformSignal.MinimumWidth = 6;
-            this.valtageTransformSignal.Name = "valtageTransformSignal";
-            this.valtageTransformSignal.ReadOnly = true;
-            // 
-            // voltage1
-            // 
-            this.voltage1.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.voltage1.DefaultCellStyle = dataGridViewCellStyle4;
-            this.voltage1.HeaderText = "压力值V1";
-            this.voltage1.MinimumWidth = 6;
-            this.voltage1.Name = "voltage1";
-            this.voltage1.ReadOnly = true;
-            // 
-            // valUpper
-            // 
-            this.valUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.valUpper.DefaultCellStyle = dataGridViewCellStyle5;
-            this.valUpper.HeaderText = "压力上限";
-            this.valUpper.MinimumWidth = 6;
-            this.valUpper.Name = "valUpper";
-            this.valUpper.ReadOnly = true;
-            // 
-            // volLower
-            // 
-            this.volLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.volLower.DefaultCellStyle = dataGridViewCellStyle6;
-            this.volLower.HeaderText = "压力下限";
-            this.volLower.MinimumWidth = 6;
-            this.volLower.Name = "volLower";
-            this.volLower.ReadOnly = true;
             // 
             // dataGridView1
             // 
             this.dataGridView1.AllowUserToOrderColumns = true;
-            dataGridViewCellStyle7.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle7.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle7.Font = new System.Drawing.Font("SimSun", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            dataGridViewCellStyle7.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle7.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle7.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-            dataGridViewCellStyle7.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dataGridView1.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle7;
+            dataGridViewCellStyle6.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle6.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle6.Font = new System.Drawing.Font("SimSun", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            dataGridViewCellStyle6.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle6.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle6.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle6.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridView1.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle6;
             this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView1.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.serialNo,
@@ -245,13 +191,12 @@ namespace upper_com
             this.dataGridView1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.dataGridView1.Size = new System.Drawing.Size(1092, 336);
             this.dataGridView1.TabIndex = 0;
-            //this.dataGridView1.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellContentClick);
             // 
             // serialNo
             // 
             this.serialNo.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle8.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.serialNo.DefaultCellStyle = dataGridViewCellStyle8;
+            dataGridViewCellStyle7.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.serialNo.DefaultCellStyle = dataGridViewCellStyle7;
             this.serialNo.HeaderText = "测试编号";
             this.serialNo.MinimumWidth = 6;
             this.serialNo.Name = "serialNo";
@@ -260,8 +205,8 @@ namespace upper_com
             // curDate
             // 
             this.curDate.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.curDate.DefaultCellStyle = dataGridViewCellStyle9;
+            dataGridViewCellStyle8.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.curDate.DefaultCellStyle = dataGridViewCellStyle8;
             this.curDate.HeaderText = "时间";
             this.curDate.MinimumWidth = 6;
             this.curDate.Name = "curDate";
@@ -270,8 +215,8 @@ namespace upper_com
             // smoothAverage
             // 
             this.smoothAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.smoothAverage.DefaultCellStyle = dataGridViewCellStyle10;
+            dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.smoothAverage.DefaultCellStyle = dataGridViewCellStyle9;
             this.smoothAverage.HeaderText = "I1均值";
             this.smoothAverage.MinimumWidth = 6;
             this.smoothAverage.Name = "smoothAverage";
@@ -280,8 +225,8 @@ namespace upper_com
             // smoothUpper
             // 
             this.smoothUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.smoothUpper.DefaultCellStyle = dataGridViewCellStyle11;
+            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.smoothUpper.DefaultCellStyle = dataGridViewCellStyle10;
             this.smoothUpper.HeaderText = "I1上限";
             this.smoothUpper.MinimumWidth = 6;
             this.smoothUpper.Name = "smoothUpper";
@@ -290,8 +235,8 @@ namespace upper_com
             // smoothLower
             // 
             this.smoothLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.smoothLower.DefaultCellStyle = dataGridViewCellStyle12;
+            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.smoothLower.DefaultCellStyle = dataGridViewCellStyle11;
             this.smoothLower.HeaderText = "I1下限";
             this.smoothLower.MinimumWidth = 6;
             this.smoothLower.Name = "smoothLower";
@@ -300,8 +245,8 @@ namespace upper_com
             // mutationAverage
             // 
             this.mutationAverage.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle13.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.mutationAverage.DefaultCellStyle = dataGridViewCellStyle13;
+            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.mutationAverage.DefaultCellStyle = dataGridViewCellStyle12;
             this.mutationAverage.HeaderText = "I2均值";
             this.mutationAverage.MinimumWidth = 6;
             this.mutationAverage.Name = "mutationAverage";
@@ -310,8 +255,8 @@ namespace upper_com
             // mutationUpper
             // 
             this.mutationUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle14.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.mutationUpper.DefaultCellStyle = dataGridViewCellStyle14;
+            dataGridViewCellStyle13.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.mutationUpper.DefaultCellStyle = dataGridViewCellStyle13;
             this.mutationUpper.HeaderText = "I2上限";
             this.mutationUpper.MinimumWidth = 6;
             this.mutationUpper.Name = "mutationUpper";
@@ -320,8 +265,8 @@ namespace upper_com
             // mutationLower
             // 
             this.mutationLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            dataGridViewCellStyle15.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            this.mutationLower.DefaultCellStyle = dataGridViewCellStyle15;
+            dataGridViewCellStyle14.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.mutationLower.DefaultCellStyle = dataGridViewCellStyle14;
             this.mutationLower.HeaderText = "I2下限";
             this.mutationLower.MinimumWidth = 6;
             this.mutationLower.Name = "mutationLower";
@@ -348,6 +293,14 @@ namespace upper_com
             this.label3.Size = new System.Drawing.Size(77, 15);
             this.label3.TabIndex = 38;
             this.label3.Text = "PLC-IP：";
+            // 
+            // pmultimerIp
+            // 
+            this.pmultimerIp.IpAddress = "192.168.0.1";
+            this.pmultimerIp.Location = new System.Drawing.Point(120, 170);
+            this.pmultimerIp.Name = "pmultimerIp";
+            this.pmultimerIp.Size = new System.Drawing.Size(242, 27);
+            this.pmultimerIp.TabIndex = 37;
             // 
             // label7
             // 
@@ -397,6 +350,14 @@ namespace upper_com
             this.connBtn.UseVisualStyleBackColor = true;
             this.connBtn.Click += new System.EventHandler(this.connBtn_Click);
             // 
+            // plcIp
+            // 
+            this.plcIp.IpAddress = "192.168.0.1";
+            this.plcIp.Location = new System.Drawing.Point(120, 203);
+            this.plcIp.Name = "plcIp";
+            this.plcIp.Size = new System.Drawing.Size(242, 27);
+            this.plcIp.TabIndex = 31;
+            // 
             // label2
             // 
             this.label2.AutoSize = true;
@@ -406,6 +367,50 @@ namespace upper_com
             this.label2.Size = new System.Drawing.Size(114, 20);
             this.label2.TabIndex = 29;
             this.label2.Text = "开始采集：";
+            // 
+            // myLED3
+            // 
+            this.myLED3.BorderWidth = 5;
+            this.myLED3.CenterColor = System.Drawing.Color.White;
+            this.myLED3.FlashInterval = 500;
+            this.myLED3.GapWidth = 5;
+            this.myLED3.Is3D = false;
+            this.myLED3.IsBorder = true;
+            this.myLED3.IsFlash = false;
+            this.myLED3.IsHighLight = true;
+            this.myLED3.LampColor = new System.Drawing.Color[] {
+        System.Drawing.Color.Green,
+        System.Drawing.Color.Red};
+            this.myLED3.LedColor = System.Drawing.Color.DodgerBlue;
+            this.myLED3.LedFalseColor = System.Drawing.Color.DimGray;
+            this.myLED3.LedStatus = false;
+            this.myLED3.LedTrueColor = System.Drawing.Color.DimGray;
+            this.myLED3.Location = new System.Drawing.Point(241, 28);
+            this.myLED3.Name = "myLED3";
+            this.myLED3.Size = new System.Drawing.Size(81, 43);
+            this.myLED3.TabIndex = 26;
+            // 
+            // myLED2
+            // 
+            this.myLED2.BorderWidth = 5;
+            this.myLED2.CenterColor = System.Drawing.Color.White;
+            this.myLED2.FlashInterval = 500;
+            this.myLED2.GapWidth = 5;
+            this.myLED2.Is3D = false;
+            this.myLED2.IsBorder = true;
+            this.myLED2.IsFlash = false;
+            this.myLED2.IsHighLight = true;
+            this.myLED2.LampColor = new System.Drawing.Color[] {
+        System.Drawing.Color.Green,
+        System.Drawing.Color.Red};
+            this.myLED2.LedColor = System.Drawing.Color.DodgerBlue;
+            this.myLED2.LedFalseColor = System.Drawing.Color.DimGray;
+            this.myLED2.LedStatus = false;
+            this.myLED2.LedTrueColor = System.Drawing.Color.DimGray;
+            this.myLED2.Location = new System.Drawing.Point(141, 28);
+            this.myLED2.Name = "myLED2";
+            this.myLED2.Size = new System.Drawing.Size(73, 43);
+            this.myLED2.TabIndex = 25;
             // 
             // syncBtn
             // 
@@ -429,6 +434,38 @@ namespace upper_com
             this.inputTextBox.Text = "请用英文括号和英文逗号分隔，如:(500,1000),(600, 2000)";
             this.inputTextBox.Enter += new System.EventHandler(this.InputTextBox_Enter);
             this.inputTextBox.Leave += new System.EventHandler(this.InputTextBox_Leave);
+            // 
+            // myBtn
+            // 
+            this.myBtn.IsPlaying = false;
+            this.myBtn.Location = new System.Drawing.Point(300, 611);
+            this.myBtn.Name = "myBtn";
+            this.myBtn.Size = new System.Drawing.Size(51, 46);
+            this.myBtn.TabIndex = 22;
+            this.myBtn.UseVisualStyleBackColor = true;
+            this.myBtn.Click += new System.EventHandler(this.myBtn_Click);
+            // 
+            // myLED1
+            // 
+            this.myLED1.BorderWidth = 5;
+            this.myLED1.CenterColor = System.Drawing.Color.White;
+            this.myLED1.FlashInterval = 500;
+            this.myLED1.GapWidth = 5;
+            this.myLED1.Is3D = false;
+            this.myLED1.IsBorder = true;
+            this.myLED1.IsFlash = false;
+            this.myLED1.IsHighLight = true;
+            this.myLED1.LampColor = new System.Drawing.Color[] {
+        System.Drawing.Color.Green,
+        System.Drawing.Color.Red};
+            this.myLED1.LedColor = System.Drawing.Color.DodgerBlue;
+            this.myLED1.LedFalseColor = System.Drawing.Color.Gray;
+            this.myLED1.LedStatus = false;
+            this.myLED1.LedTrueColor = System.Drawing.Color.Gray;
+            this.myLED1.Location = new System.Drawing.Point(42, 28);
+            this.myLED1.Name = "myLED1";
+            this.myLED1.Size = new System.Drawing.Size(66, 43);
+            this.myLED1.TabIndex = 13;
             // 
             // kLabel
             // 
@@ -480,97 +517,45 @@ namespace upper_com
             this.n_value.TabIndex = 3;
             this.n_value.Text = "20";
             // 
-            // pmultimerIp
+            // curNo
             // 
-            this.pmultimerIp.IpAddress = "...";
-            this.pmultimerIp.Location = new System.Drawing.Point(120, 170);
-            this.pmultimerIp.Name = "pmultimerIp";
-            this.pmultimerIp.Size = new System.Drawing.Size(242, 27);
-            this.pmultimerIp.TabIndex = 37;
+            this.curNo.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.curNo.DefaultCellStyle = dataGridViewCellStyle2;
+            this.curNo.HeaderText = "压力值编号";
+            this.curNo.MinimumWidth = 6;
+            this.curNo.Name = "curNo";
+            this.curNo.ReadOnly = true;
             // 
-            // plcIp
+            // voltage1
             // 
-            this.plcIp.IpAddress = "...";
-            this.plcIp.Location = new System.Drawing.Point(120, 203);
-            this.plcIp.Name = "plcIp";
-            this.plcIp.Size = new System.Drawing.Size(242, 27);
-            this.plcIp.TabIndex = 31;
+            this.voltage1.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.voltage1.DefaultCellStyle = dataGridViewCellStyle3;
+            this.voltage1.HeaderText = "压力均值";
+            this.voltage1.MinimumWidth = 6;
+            this.voltage1.Name = "voltage1";
+            this.voltage1.ReadOnly = true;
             // 
-            // myLED3
+            // valUpper
             // 
-            this.myLED3.BorderWidth = 5;
-            this.myLED3.CenterColor = System.Drawing.Color.White;
-            this.myLED3.FlashInterval = 500;
-            this.myLED3.GapWidth = 5;
-            this.myLED3.Is3D = false;
-            this.myLED3.IsBorder = true;
-            this.myLED3.IsFlash = false;
-            this.myLED3.IsHighLight = true;
-            this.myLED3.LampColor = new System.Drawing.Color[] {
-        System.Drawing.Color.Green,
-        System.Drawing.Color.Red};
-            this.myLED3.LedColor = System.Drawing.Color.DodgerBlue;
-            this.myLED3.LedFalseColor = System.Drawing.Color.DimGray;
-            this.myLED3.LedStatus = false;
-            this.myLED3.LedTrueColor = System.Drawing.Color.DimGray;
-            this.myLED3.Location = new System.Drawing.Point(241, 28);
-            this.myLED3.Name = "myLED3";
-            this.myLED3.Size = new System.Drawing.Size(81, 43);
-            this.myLED3.TabIndex = 26;
+            this.valUpper.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle4.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.valUpper.DefaultCellStyle = dataGridViewCellStyle4;
+            this.valUpper.HeaderText = "压力上限";
+            this.valUpper.MinimumWidth = 6;
+            this.valUpper.Name = "valUpper";
+            this.valUpper.ReadOnly = true;
             // 
-            // myLED2
+            // volLower
             // 
-            this.myLED2.BorderWidth = 5;
-            this.myLED2.CenterColor = System.Drawing.Color.White;
-            this.myLED2.FlashInterval = 500;
-            this.myLED2.GapWidth = 5;
-            this.myLED2.Is3D = false;
-            this.myLED2.IsBorder = true;
-            this.myLED2.IsFlash = false;
-            this.myLED2.IsHighLight = true;
-            this.myLED2.LampColor = new System.Drawing.Color[] {
-        System.Drawing.Color.Green,
-        System.Drawing.Color.Red};
-            this.myLED2.LedColor = System.Drawing.Color.DodgerBlue;
-            this.myLED2.LedFalseColor = System.Drawing.Color.DimGray;
-            this.myLED2.LedStatus = false;
-            this.myLED2.LedTrueColor = System.Drawing.Color.DimGray;
-            this.myLED2.Location = new System.Drawing.Point(141, 28);
-            this.myLED2.Name = "myLED2";
-            this.myLED2.Size = new System.Drawing.Size(73, 43);
-            this.myLED2.TabIndex = 25;
-            // 
-            // myBtn
-            // 
-            this.myBtn.IsPlaying = false;
-            this.myBtn.Location = new System.Drawing.Point(300, 611);
-            this.myBtn.Name = "myBtn";
-            this.myBtn.Size = new System.Drawing.Size(51, 46);
-            this.myBtn.TabIndex = 22;
-            this.myBtn.UseVisualStyleBackColor = true;
-            this.myBtn.Click += new System.EventHandler(this.myBtn_Click);
-            // 
-            // myLED1
-            // 
-            this.myLED1.BorderWidth = 5;
-            this.myLED1.CenterColor = System.Drawing.Color.White;
-            this.myLED1.FlashInterval = 500;
-            this.myLED1.GapWidth = 5;
-            this.myLED1.Is3D = false;
-            this.myLED1.IsBorder = true;
-            this.myLED1.IsFlash = false;
-            this.myLED1.IsHighLight = true;
-            this.myLED1.LampColor = new System.Drawing.Color[] {
-        System.Drawing.Color.Green,
-        System.Drawing.Color.Red};
-            this.myLED1.LedColor = System.Drawing.Color.DodgerBlue;
-            this.myLED1.LedFalseColor = System.Drawing.Color.Gray;
-            this.myLED1.LedStatus = false;
-            this.myLED1.LedTrueColor = System.Drawing.Color.Gray;
-            this.myLED1.Location = new System.Drawing.Point(42, 28);
-            this.myLED1.Name = "myLED1";
-            this.myLED1.Size = new System.Drawing.Size(66, 43);
-            this.myLED1.TabIndex = 13;
+            this.volLower.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            dataGridViewCellStyle5.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            this.volLower.DefaultCellStyle = dataGridViewCellStyle5;
+            this.volLower.HeaderText = "压力下限";
+            this.volLower.MinimumWidth = 6;
+            this.volLower.Name = "volLower";
+            this.volLower.ReadOnly = true;
             // 
             // DataDetection
             // 
@@ -628,7 +613,6 @@ namespace upper_com
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.DataGridViewTextBoxColumn curNo;
-        private System.Windows.Forms.DataGridViewTextBoxColumn valtageTransformSignal;
         private System.Windows.Forms.DataGridViewTextBoxColumn voltage1;
         private System.Windows.Forms.DataGridViewTextBoxColumn valUpper;
         private System.Windows.Forms.DataGridViewTextBoxColumn volLower;

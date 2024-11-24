@@ -9,19 +9,20 @@ namespace upper_com
     internal class CurrentData
     {
 
-        public int serialNo {  get; set; }
+        public int SerialNo { get; set; }
 
-        public List<double> stableList { get; set; }
+        public List<(double i1, double i2)> Curs { get; private set; }
 
-        public List<double> mutationList { get; set; }
-
-        public double totalDuration { get; set; }
-
-        // 构造函数
-        public CurrentData()
+        public CurrentData(int serialNo, List<(double i1, double i2)> curs)
         {
-            stableList = new List<double>();
-            mutationList = new List<double>();
+            SerialNo = serialNo;
+            Curs = curs;
         }
+
+        public CurrentData() { } 
+
+        //public double totalDuration { get; set; }
+
+
     }
 }

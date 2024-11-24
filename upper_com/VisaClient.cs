@@ -60,7 +60,7 @@ namespace upper_com
                     catch (Exception ex)
                     {
                         Connected = false;
-                        MessageBox.Show("万用表连接失败！！！发生错误: " + ex.Message + ", 请检查设备和网络情况！！！");
+                        MessageBox.Show($"万用表连接失败！！！发生错误: {ex}" + ", 请检查设备和网络情况！！！");
                         await Task.Delay(5000, token); // 每5秒重试一次，支持取消
                     }
                 }

@@ -35,8 +35,6 @@ namespace upper_com
         private readonly object voltageFileLock = new object();
         #endregion
 
-        private System.Windows.Forms.Timer dataChangeTimer;
-
         private string placeholderText = "请用英文括号和英文逗号分隔，如:(500,1000),(600, 2000)";
 
         private MultimeterDetection multimeterDetection;
@@ -51,7 +49,7 @@ namespace upper_com
             this.Resize += new EventHandler(Form1_Resize);
             X = this.Width;
             Y = this.Height;
-            setTag(this);
+            SetTag(this);
             #endregion
 
             // 程序启动时加载数据
@@ -66,17 +64,17 @@ namespace upper_com
         }
 
         #region 控件自适应窗口大小
-        private void setTag(Control cons)
+        private void SetTag(Control cons)
         {
             foreach (Control con in cons.Controls)
             {
                 con.Tag = con.Width + ":" + con.Height + ":" + con.Left + ":" + con.Top + ":" + con.Font.Size;
                 if (con.Controls.Count > 0)
-                    setTag(con);
+                    SetTag(con);
             }
         }
 
-        private void setControls(float newx, float newy, Control cons)
+        private void SetControls(float newx, float newy, Control cons)
         {
             foreach (Control con in cons.Controls)
             {
@@ -93,7 +91,7 @@ namespace upper_com
                 con.Font = new System.Drawing.Font(con.Font.Name, currentSize, con.Font.Style, con.Font.Unit);
                 if (con.Controls.Count > 0)
                 {
-                    setControls(newx, newy, con);
+                    SetControls(newx, newy, con);
                 }
             }
         }
@@ -104,7 +102,7 @@ namespace upper_com
             float newx = (this.Width) / X;
             //  float newy = (this.Height - this.statusStrip1.Height) / (Y - y);
             float newy = this.Height / Y;
-            setControls(newx, newy, this);
+            SetControls(newx, newy, this);
             this.Text = this.Width.ToString() + " " + this.Height.ToString();
         }
         #endregion
@@ -193,7 +191,7 @@ namespace upper_com
 
             try
             {
-                using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     IWorkbook workbook = new XSSFWorkbook(fs);
                     ISheet sheet = workbook.GetSheetAt(0);
@@ -212,9 +210,20 @@ namespace upper_com
                     }
                 }
             }
+            catch (ICSharpCode.SharpZipLib.Zip.ZipException ex)
+            {
+                Console.WriteLine("ZIP 文件错误: " + ex.Message);
+                MessageBox.Show("文件格式错误或文件已损坏，无法读取数据。请检查文件并重试。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             catch (IOException ex)
             {
-                MessageBox.Show($"文件访问错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine(ex);
+                MessageBox.Show($"文件读取错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("其他错误: " + ex.Message);
+                MessageBox.Show($"发生未知错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -250,7 +259,7 @@ namespace upper_com
 
             try
             {
-                using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     IWorkbook workbook = new XSSFWorkbook(fs);
                     ISheet sheet = workbook.GetSheetAt(0);
@@ -269,9 +278,20 @@ namespace upper_com
                     }
                 }
             }
+            catch (ICSharpCode.SharpZipLib.Zip.ZipException ex)
+            {
+                Console.WriteLine("文件错误: " + ex.Message);
+                MessageBox.Show($"{voltageFilePath}文件格式错误或文件已损坏，无法读取数据。请检查文件并重试。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
             catch (IOException ex)
             {
-                MessageBox.Show($"文件访问错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine(ex);
+                MessageBox.Show($"{voltageFilePath}文件读取错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("其他错误: " + ex.Message);
+                MessageBox.Show($"{voltageFilePath}发生未知错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -463,9 +483,20 @@ namespace upper_com
                         }
                     }
                 }
+                catch (ICSharpCode.SharpZipLib.Zip.ZipException ex)
+                {
+                    Console.WriteLine("ZIP 文件错误: " + ex.Message);
+                    MessageBox.Show("文件格式错误或文件已损坏，无法读取数据。请检查文件并重试。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
                 catch (IOException ex)
                 {
+                    Console.WriteLine(ex);
                     MessageBox.Show($"文件读取错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("其他错误: " + ex.Message);
+                    MessageBox.Show($"发生未知错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
@@ -512,9 +543,20 @@ namespace upper_com
                         }
                     }
                 }
+                catch (ICSharpCode.SharpZipLib.Zip.ZipException ex)
+                {
+                    Console.WriteLine("ZIP 文件错误: " + ex.Message);
+                    MessageBox.Show("文件格式错误或文件已损坏，无法读取数据。请检查文件并重试。", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
                 catch (IOException ex)
                 {
+                    Console.WriteLine(ex);
                     MessageBox.Show($"文件读取错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("其他错误: " + ex.Message);
+                    MessageBox.Show($"发生未知错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
@@ -562,11 +604,11 @@ namespace upper_com
             return Regex.IsMatch(input, @"^\d+,\d+$");
         }
 
-        private void myBtn_Click(object sender, EventArgs e)
+        private async void myBtn_Click(object sender, EventArgs e)
         {
             #region 本地调试
-            //MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
-            //test.TestData();
+            MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
+            test.TestData();
 
             //PLCDetection testPlc = new PLCDetection(this.dataGridView2);
             //testPlc.TestData();
@@ -575,7 +617,7 @@ namespace upper_com
             MyButton button = sender as MyButton;
 
             #region PLC调试
-            InputData inputData = new InputData();
+            /*InputData inputData = new InputData();
             inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
             inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
 
@@ -584,26 +626,51 @@ namespace upper_com
                 plcDetection.SetPlaying(true);
                 plcDetection.SetInputDate(inputData);
                 _ = plcDetection.PlcListenerHandler();
-            }
+            }*/
             #endregion
 
             #region 万用表调试
-            // 1. 参数校验
-            /*InputData inputData = new InputData();
-            inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
-            inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
-            inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
-            if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
+            /*if (button.IsPlaying)
             {
-                MessageBox.Show("15组时间数据未设置，请先设置时间数据！！！");
-                button.IsPlaying = true;
-                return;
+                //MessageBox.Show("暂停");
+                this.myLED3.IsFlash = false;
+                this.myLED3.LedStatus = true;
+                this.myLED3.LedTrueColor = Color.Green;
+
+                if (plcDetection != null)
+                {
+                    plcDetection.SetPlaying(false);
+                }
+
+                if (multimeterDetection != null)
+                {
+                    multimeterDetection.SetIsPlaying(false);
+                }
             }
-            if (multimeterDetection != null)
+            else
             {
-                multimeterDetection.SetInputDate(inputData);
-                multimeterDetection.SetIsPlaying(true);
-                _ = multimeterDetection.MultimeterListenerHandler();
+                //MessageBox.Show("开始");
+                this.myLED3.IsFlash = true;
+                this.myLED3.LedStatus = true;
+                this.myLED3.LedTrueColor = Color.Green;
+
+                // 1. 参数校验
+                InputData inputData = new InputData();
+                inputData.K = InvalidateParamsForInt(this.k_value.Text.Trim());
+                inputData.Num = InvalidateParamsForInt(this.n_value.Text.Trim());
+                inputData.DataQueue = LoadTimerData(inputTextBox.Text.Trim());
+                if (inputData.DataQueue == null || inputData.DataQueue.Count <= 0)
+                {
+                    MessageBox.Show("15组时间数据未设置，请先设置时间数据！！！");
+                    button.IsPlaying = true;
+                    return;
+                }
+                if (multimeterDetection != null)
+                {
+                    multimeterDetection.SetInputDate(inputData);
+                    multimeterDetection.SetIsPlaying(true);
+                    await Task.Run(() => multimeterDetection.MultimeterListenerHandler());
+                }
             }*/
             #endregion
 
@@ -719,18 +786,18 @@ namespace upper_com
             }
 
             #region TODO 万用表调试
-            /*multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
+            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
             if (multimeterDetection.MultimerOpen())
             {
                 this.multimerLabel.Text = "万用表已连接!";
                 this.multimerLabel.ForeColor = Color.DarkOliveGreen;
                 // 连接成功之后，立即下发初始化指令
                 multimeterDetection.SendConfigCommand();
-            }*/
+            }
             #endregion
 
             #region TODO PLC 调试
-            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1);
+            /*multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1);
 
             plcDetection = new PLCDetection(plcIpAddress, multimeterDetection, this.myLED1, this.dataGridView2);
             bool a = plcDetection.PlcOpenAsync().Result;
@@ -738,7 +805,7 @@ namespace upper_com
             {
                 this.plcLabel.Text = "PLC已连接!";
                 this.plcLabel.ForeColor = Color.DarkOliveGreen;
-            }
+            }*/
             #endregion
 
             #region 正式环境
