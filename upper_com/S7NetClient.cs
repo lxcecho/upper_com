@@ -1,4 +1,5 @@
-﻿using OfficeOpenXml.FormulaParsing.LexicalAnalysis;
+﻿using NLog;
+using OfficeOpenXml.FormulaParsing.LexicalAnalysis;
 using S7.Net;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,8 @@ namespace upper_com
 {
     internal class S7NetClient
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         Plc plc;
 
         private string plcIp;
@@ -48,6 +51,7 @@ namespace upper_com
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex);
+                    Logger.Error(ex);
                     MessageBox.Show($"PLC连接失败！！！发生错误: {ex}" + ", 请检查设备和网络情况！！！");
                     // 等待一段时间后重试连接
                     await Task.Delay(5000, cancellationToken); // 每5秒重试一次，支持取消
@@ -66,6 +70,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Logger.Error(ex);
                 Console.WriteLine("lxcecho: " + ex);
                 return ex.Message;
             }
@@ -81,6 +86,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Logger.Error(ex);
                 Console.WriteLine("lxcecho: " + ex);
                 Connected = false;
                 return false;
@@ -97,6 +103,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Logger.Error(ex);
                 Console.WriteLine("lxcecho: " + ex);
                 Connected = false;
             }
@@ -113,6 +120,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Logger.Error(ex);
                 Console.WriteLine("lxcecho: " + ex);
                 Connected = false;
             }
@@ -129,6 +137,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Logger.Error(ex);
                 Connected = false;
                 Console.WriteLine("lxcecho: " + ex);
             }
@@ -144,6 +153,7 @@ namespace upper_com
             }
             catch (Exception ex)
             {
+                Logger.Error(ex);
                 Console.WriteLine("lxcecho: " + ex);
                 return "-1";
             }

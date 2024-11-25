@@ -1,4 +1,5 @@
 ﻿using Microsoft.Office.Interop.Excel;
+using NLog;
 using NPOI.POIFS.Crypt.Dsig;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
@@ -6,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -15,10 +17,13 @@ namespace upper_com
     internal class CurrentDataQueue
     {
 
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         #region 数据定时刷新
         private FileSystemWatcher currentFileWatcher;
         private readonly string currentFilePath = @"D:\upperCom\" + DateTime.Now.ToString("yyyy-MM-dd") + "_current.xlsx";
         private readonly object currentFileLock = new object();
+        private readonly SemaphoreSlim fileLock = new SemaphoreSlim(1, 1);
         #endregion
         private DataGridView dataGridView1;
 
@@ -84,14 +89,14 @@ namespace upper_com
             }
 
             // 监控电流文件
-            currentFileWatcher = new FileSystemWatcher
+            /*currentFileWatcher = new FileSystemWatcher
             {
                 Path = Path.GetDirectoryName(currentFilePath),
                 Filter = Path.GetFileName(currentFilePath),
                 NotifyFilter = NotifyFilters.LastWrite
             };
             currentFileWatcher.Changed += OnCurrentFileChanged;
-            currentFileWatcher.EnableRaisingEvents = true;
+            currentFileWatcher.EnableRaisingEvents = true;*/
         }
 
         private void OnCurrentFileChanged(object sender, FileSystemEventArgs e)
@@ -124,7 +129,7 @@ namespace upper_com
 
             if (!File.Exists(currentFilePath))
             {
-                //MessageBox.Show("当天记录压力数据文件文件不存在，表格数据为空。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Logger.Info("当天记录压力数据文件文件不存在，表格数据为空。");
                 Console.WriteLine("当天记录的电流数据文件文件不存在，表格数据为空。");
                 return;
             }
@@ -153,11 +158,12 @@ namespace upper_com
             catch (IOException ex)
             {
                 Console.WriteLine(ex);
+                Logger.Info($"文件访问错误: {ex.Message}");
                 MessageBox.Show($"文件访问错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        public void AddData(CurrentData all, bool allowOutOfBounds = false)
+        public async Task AddData(CurrentData all, bool allowOutOfBounds = false)
         {
             // 队列满
             if (curQueue.Count == maxSize)
@@ -194,14 +200,14 @@ namespace upper_com
                 Console.WriteLine("CurrentDataProcessed called=" + currentData.ToString());
 
                 UpdateCurrentData(currentData);
-                WriteCurrentDataToFile(currentData);
-
+                
                 // Check if data is within limits
                 foreach (var (i1, i2) in all.Curs)
                 {
                     if (!(lowerLimitI1 <= i1 && i1 <= upperLimitI1 && lowerLimitI2 <= i2 && i2 <= upperLimitI2))
                     {
                         allowOutOfBounds = true;
+                        Logger.Info($"警告：数据超出限值范围！电流值不在限值范围内。");
                         MessageBox.Show($"警告：数据超出限值范围！电流值不在限值范围内。");
                         break;
                     }
@@ -220,9 +226,8 @@ namespace upper_com
 
             CheckConsecutiveChanges();
 
-            WriteCursDataToSheet2(all);
-
-            SaveExcelFile();
+            await WriteCursDataToSheet2Async(all);
+            await SaveExcelFileAsync();
         }
 
         private void CheckConsecutiveChanges()
@@ -245,40 +250,45 @@ namespace upper_com
                     i1Means.Zip(i1Means.Skip(1), (x, y) => x > y).All(b => b))
                 {
                     MessageBox.Show($"警告：i1的连续20个平均值都变大或变小！");
-                    Console.WriteLine("Alarm: i1 means consistently increasing or decreasing!");
+                    Logger.Info("Alarm: i1 means consistently increasing or decreasing!");
                 }
                 if (i2Means.Zip(i2Means.Skip(1), (x, y) => x < y).All(b => b) ||
                     i2Means.Zip(i2Means.Skip(1), (x, y) => x > y).All(b => b))
                 {
                     MessageBox.Show($"警告：i1的连续20个平均值都变大或变小！");
-                    Console.WriteLine("Alarm: i2 means consistently increasing or decreasing!");
+                    Logger.Info("Alarm: i2 means consistently increasing or decreasing!");
                 }
             }
         }
 
-        private void SaveExcelFile()
+        private async Task SaveExcelFileAsync()
         {
-            lock (currentFileLock)
+            await fileLock.WaitAsync();
+            try
             {
-                try
+                // 写入文件
+                using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                 {
-                    // 写入文件
-                    using (var fs = new FileStream(currentFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                    {
-                        workbook.Write(fs);
-                    }
-                }
-                catch (IOException ex)
-                {
-                    Console.WriteLine(ex);
-                    MessageBox.Show($"{currentFilePath}文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                    MessageBox.Show($"{currentFilePath}发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    await Task.Run(() => workbook.Write(fs));
                 }
             }
+            catch (IOException ex)
+            {
+                Console.WriteLine(ex);
+                Logger.Info($"{currentFilePath}文件写入错误: {ex.Message}");
+                MessageBox.Show($"{currentFilePath}文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                Logger.Info($"{currentFilePath}发生错误: {ex.Message}");
+                MessageBox.Show($"{currentFilePath}发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                fileLock.Release();
+            }
+
         }
 
         public (double meanI1, double meanI2) GetAverage()
@@ -309,20 +319,28 @@ namespace upper_com
         }
 
 
-        private void WriteCursDataToSheet2(CurrentData all)
+        private async Task WriteCursDataToSheet2Async(CurrentData all)
         {
-            // 找到最后一行
-            int lastRowNum = sheet2.LastRowNum;
-
-            // 将 serialNo 和 curs 数据写入到第二个 Sheet
-            IRow newRow = sheet2.CreateRow(++lastRowNum);
-
-            // 第一列写入电流测试编号
-            newRow.CreateCell(0).SetCellValue(all.SerialNo);
-
-            for (int i = 0; i < all.Curs.Count; i++)
+            await fileLock.WaitAsync();
+            try
             {
-                newRow.CreateCell(1 + i).SetCellValue(all.Curs[i].ToString());
+                // 找到最后一行
+                int lastRowNum = sheet2.LastRowNum;
+
+                // 将 serialNo 和 curs 数据写入到第二个 Sheet
+                IRow newRow = sheet2.CreateRow(++lastRowNum);
+
+                // 第一列写入电流测试编号
+                newRow.CreateCell(0).SetCellValue(all.SerialNo);
+
+                for (int i = 0; i < 15; i++)
+                {
+                    newRow.CreateCell(1 + i).SetCellValue(all.Curs[i].ToString());
+                }
+            }
+            finally
+            {
+                fileLock.Release();
             }
         }
 
@@ -340,6 +358,7 @@ namespace upper_com
             {
                 AddCurrentDataToGridView(currentData);
             }
+            await WriteCurrentDataToFileAsync(currentData);
         }
 
         private void AddCurrentDataToGridView(CurrentDataTable currentData)
@@ -360,24 +379,32 @@ namespace upper_com
             }
         }
 
-        private void WriteCurrentDataToFile(CurrentDataTable currentData)
+        private async Task WriteCurrentDataToFileAsync(CurrentDataTable currentData)
         {
-            // 找到最后一行
-            int lastRowNum = sheet1.LastRowNum;
-            IRow newRow = sheet1.CreateRow(lastRowNum + 1);
-            if (currentData != null)
+            await fileLock.WaitAsync();
+            try
             {
-                // 追加数据
-                newRow.CreateCell(0).SetCellValue(currentData.serialNo);
-                newRow.CreateCell(1).SetCellValue(currentData.curDate);
-                //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
-                newRow.CreateCell(2).SetCellValue(currentData.smoothAverage);
-                newRow.CreateCell(3).SetCellValue(currentData.smoothUpper);
-                newRow.CreateCell(4).SetCellValue(currentData.smoothLower);
-                //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
-                newRow.CreateCell(5).SetCellValue(currentData.mutationAverage);
-                newRow.CreateCell(6).SetCellValue(currentData.mutationUpper);
-                newRow.CreateCell(7).SetCellValue(currentData.mutationLower);
+                // 找到最后一行
+                int lastRowNum = sheet1.LastRowNum;
+                IRow newRow = sheet1.CreateRow(lastRowNum + 1);
+                if (currentData != null)
+                {
+                    // 追加数据
+                    newRow.CreateCell(0).SetCellValue(currentData.serialNo);
+                    newRow.CreateCell(1).SetCellValue(currentData.curDate);
+                    //newRow.CreateCell(2).SetCellValue(currentData.GetSmoothCur());
+                    newRow.CreateCell(2).SetCellValue(currentData.smoothAverage);
+                    newRow.CreateCell(3).SetCellValue(currentData.smoothUpper);
+                    newRow.CreateCell(4).SetCellValue(currentData.smoothLower);
+                    //newRow.CreateCell(6).SetCellValue(currentData.GetMutationCur());
+                    newRow.CreateCell(5).SetCellValue(currentData.mutationAverage);
+                    newRow.CreateCell(6).SetCellValue(currentData.mutationUpper);
+                    newRow.CreateCell(7).SetCellValue(currentData.mutationLower);
+                }
+            }
+            finally
+            {
+                fileLock.Release();
             }
         }
     }

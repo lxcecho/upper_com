@@ -1,10 +1,12 @@
-﻿using NPOI.POIFS.Crypt.Dsig;
+﻿using NLog;
+using NPOI.POIFS.Crypt.Dsig;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -13,11 +15,13 @@ namespace upper_com
 
     internal class VoltageDataQueue
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         #region 数据定时刷新
         private FileSystemWatcher voltageFileWatcher;
         private readonly string voltageFilePath = @"D:\upperCom\" + DateTime.Now.ToString("yyyy-MM-dd") + "_voltage.xlsx";
         private readonly object voltageFileLock = new object();
+        private readonly SemaphoreSlim fileLock = new SemaphoreSlim(1, 1);
         #endregion
         private DataGridView dataGridView2;
 
@@ -78,7 +82,7 @@ namespace upper_com
             // 第五到20列，写入15组压力数据
             for (int i = 0; i < 15; i++)
             {
-                headerRow2.CreateCell(4 + i).SetCellValue($"压力 {i + 1}");
+                headerRow2.CreateCell(4 + i).SetCellValue($"压力值{i + 1}");
             }
         }
 
@@ -106,7 +110,7 @@ namespace upper_com
             {
                 AddVoltageDataToGridView(voltageData);
             }
-
+            await WriteDataToExcel(voltageData);
         }
 
         private void AddVoltageDataToGridView(VoltageDataTable voltageData)
@@ -119,32 +123,33 @@ namespace upper_com
             }
         }
 
-        private void SaveExcelFile()
+        private async Task SaveExcelFile()
         {
-            //await Task.Run(() =>
-            //{
-            lock (voltageFileLock)
+            await fileLock.WaitAsync();
+            try
             {
-                try
+                // 写入文件
+                using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
                 {
-                    // 写入文件
-                    using (var fs = new FileStream(voltageFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite))
-                    {
-                        workbook.Write(fs);
-                    }
-                }
-                catch (IOException ex)
-                {
-                    Console.WriteLine(ex);
-                    MessageBox.Show($"{voltageFilePath}文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                    MessageBox.Show($"{voltageFilePath}发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    await Task.Run(() => workbook.Write(fs));
                 }
             }
-            //});
+            catch (IOException ex)
+            {
+                Console.WriteLine(ex);
+                Logger.Info($"{voltageFilePath}文件写入错误: {ex.Message}");
+                MessageBox.Show($"{voltageFilePath}文件写入错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                Logger.Info($"{voltageFilePath}发生错误: {ex.Message}");
+                MessageBox.Show($"{voltageFilePath}发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                fileLock.Release();
+            }
         }
 
         public async Task AddData(VoltageData newData)
@@ -168,9 +173,9 @@ namespace upper_com
                         Upper = upperLimit.ToString("F2"),
                         Lower = lowerLimit.ToString("F2")
                     };
-                    voltageDataTables.Add(voltageData);
+                    //voltageDataTables.Add(voltageData);
                     Console.WriteLine("voldata=" + voltageData);
-                    WriteDataToExcel(voltageData);
+                    
                     UpdateVoltagetData(voltageData);
 
                     if (newData.Pressures[i] < lowerLimit || newData.Pressures[i] > upperLimit)
@@ -195,45 +200,61 @@ namespace upper_com
             CheckConsecutiveChanges();
 
             // 将newData写入到Sheet2
-            WriteNewDataToSheet2(newData);
+            await WriteNewDataToSheet2(newData);
 
             // 保存Excel文件
-            SaveExcelFile();
+            await SaveExcelFile();
         }
 
-        private void WriteNewDataToSheet2(VoltageData all)
+        private async Task WriteNewDataToSheet2(VoltageData all)
         {
-            // 找到最后一行
-            int lastRowNum = sheet2.LastRowNum;
-
-            // 将 serialNo 和 vols 数据写入到第二个 Sheet
-            IRow newRow = sheet2.CreateRow(++lastRowNum);
-
-            // 第一列写入电流测试编号
-            newRow.CreateCell(0).SetCellValue(all.CurrentNo);
-            // 第二列写入电流测试开始信号
-            newRow.CreateCell(1).SetCellValue(all.CurrentStartSignal ? "True" : "False");
-            // 第三列写入电流测试结束信号
-            newRow.CreateCell(2).SetCellValue(all.CurrentEndSignal ? "True" : "False");
-            // 第四列写入压力传送信号
-            newRow.CreateCell(3).SetCellValue(all.VoltageTransformSignal ? "True" : "False");
-            // 第五到20列，写入15组压力数据
-            for (int i = 0; i < all.Pressures.Length; i++)
+            await fileLock.WaitAsync();
+            try
             {
-                newRow.CreateCell(4 + i).SetCellValue(all.Pressures[i]);
+                // 找到最后一行
+                int lastRowNum = sheet2.LastRowNum;
+
+                // 将 serialNo 和 vols 数据写入到第二个 Sheet
+                IRow newRow = sheet2.CreateRow(++lastRowNum);
+
+                // 第一列写入电流测试编号
+                newRow.CreateCell(0).SetCellValue(all.CurrentNo);
+                // 第二列写入电流测试开始信号
+                newRow.CreateCell(1).SetCellValue(all.CurrentStartSignal ? "True" : "False");
+                // 第三列写入电流测试结束信号
+                newRow.CreateCell(2).SetCellValue(all.CurrentEndSignal ? "True" : "False");
+                // 第四列写入压力传送信号
+                newRow.CreateCell(3).SetCellValue(all.VoltageTransformSignal ? "True" : "False");
+                // 第五到20列，写入15组压力数据
+                for (int i = 0; i < all.Pressures.Length; i++)
+                {
+                    newRow.CreateCell(4 + i).SetCellValue(all.Pressures[i]);
+                }
+            }
+            finally
+            {
+                fileLock.Release();
             }
         }
 
-        private void WriteDataToExcel(VoltageDataTable voltageData)
+        private async Task WriteDataToExcel(VoltageDataTable voltageData)
         {
-            // 找到最后一行
-            int lastRowNum = sheet1.LastRowNum;
-            IRow newRow = sheet1.CreateRow(lastRowNum + 1);
-            // 追加数据
-            newRow.CreateCell(0).SetCellValue(voltageData.VolNo);
-            newRow.CreateCell(1).SetCellValue(voltageData.Average);
-            newRow.CreateCell(2).SetCellValue(voltageData.Upper);
-            newRow.CreateCell(3).SetCellValue(voltageData.Lower);
+            await fileLock.WaitAsync();
+            try
+            {
+                // 找到最后一行
+                int lastRowNum = sheet1.LastRowNum;
+                IRow newRow = sheet1.CreateRow(lastRowNum + 1);
+                // 追加数据
+                newRow.CreateCell(0).SetCellValue(voltageData.VolNo);
+                newRow.CreateCell(1).SetCellValue(voltageData.Average);
+                newRow.CreateCell(2).SetCellValue(voltageData.Upper);
+                newRow.CreateCell(3).SetCellValue(voltageData.Lower);
+            }
+            finally
+            {
+                fileLock.Release();
+            }
         }
 
         private double[] CalculateMeans()

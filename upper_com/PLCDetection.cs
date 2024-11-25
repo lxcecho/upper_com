@@ -7,11 +7,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using DotNetSiemensPLCToolBoxLibrary.Communication.Library;
+using NLog;
 
 namespace upper_com
 {
     internal class PLCDetection
     {
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         private string plcIp;
 
         private MultimeterDetection multimeterDetection;
@@ -71,6 +75,7 @@ namespace upper_com
 
             if (isConnected)
             {
+                Logger.Info("PLC 连接成功...");
                 Console.WriteLine("PLC 连接成功...");
                 // TODO LED 灯要变绿
                 UpdateLEDStatus(Color.Green);
@@ -80,6 +85,7 @@ namespace upper_com
             {
                 UpdateLEDStatus(Color.DimGray);
                 Console.WriteLine("PLC 连接失败！！！");
+                Logger.Info("PLC 连接失败！！！");
                 return false;
             }
 
@@ -107,15 +113,22 @@ namespace upper_com
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+                Logger.Info($"数据采集出错了，请检查一下PLC连接！！！！: {ex.Message}");
                 MessageBox.Show($"数据采集出错了，请检查一下PLC连接！！！！: {ex.Message}");
             }
         }
 
         private async Task VoltageDataHandler()
         {
+            int numberOfQueues = 30;
+            List<VoltageDataQueue> queues = new List<VoltageDataQueue>(numberOfQueues);
+
+            //for (int j = 0; j < numberOfQueues; j++)
+            //{
             if (inputData != null)
             {
                 voltageDataQueue = new VoltageDataQueue(this.dataGridView2, inputData.Num, inputData.K);
+                queues.Add(voltageDataQueue);
 
                 while (this.isPlaying && s7NetClient.Connected)
                 {
@@ -167,6 +180,7 @@ namespace upper_com
 
                     _ = voltageDataQueue.AddData(all);
                 }
+                //}
             }
         }
 

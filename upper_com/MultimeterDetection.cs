@@ -20,11 +20,14 @@ using NPOI.POIFS.Crypt.Dsig;
 using System.Collections;
 using DotNetSiemensPLCToolBoxLibrary.Communication.Library;
 using MathNet.Numerics.Distributions;
+using NLog;
 
 namespace upper_com
 {
     internal class MultimeterDetection
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         private string multimerIp;
 
         private MyLED myLED2;
@@ -59,7 +62,6 @@ namespace upper_com
 
         public MultimeterDetection(MyLED myLED2, DataGridView dataGridView1)
         {
-            this.multimerIp = multimerIp;
             this.myLED2 = myLED2;
             this.dataGridView1 = dataGridView1;
         }
@@ -134,6 +136,7 @@ namespace upper_com
             catch (Exception ex)
             {
                 Console.WriteLine($"发送配置命令时出错: {ex.Message}");
+                Logger.Info($"发送配置命令时出错: {ex.Message}");
             }
         }
 
@@ -149,11 +152,13 @@ namespace upper_com
                 else
                 {
                     Console.WriteLine("万用表数据采集停止，什么都不做！！！！！！！！");
+                    Logger.Info("万用表数据采集停止，什么都不做！！！！！！！！");
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
+                Logger.Info($"数据采集出错了，请检查一下设备连接！！！！: {ex.Message}");
                 MessageBox.Show($"数据采集出错了，请检查一下设备连接！！！！: {ex.Message}");
             }
         }
@@ -165,7 +170,7 @@ namespace upper_com
                 currentDataQueue = new CurrentDataQueue(this.dataGridView1, inputData.Num, inputData.K); // 初始化 DataQueue
             }
 
-            //timeQueue = new Queue<(int start, int duration)>(inputData.DataQueue);
+            timeQueue = new Queue<(int start, int duration)>(inputData.DataQueue);
 
             while (this.isPlaying && visaClient.Connected)
             {
@@ -182,59 +187,61 @@ namespace upper_com
                 while (isCollectingData)
                 {
                     // TODO 调试使用，真正需要放在收到起始信号位置开始
-                    Stopwatch durationWatch = new Stopwatch();
-                    durationWatch.Restart();
+                    Stopwatch durationWatch = Stopwatch.StartNew();
 
                     CurrentData all = new CurrentData();
 
                     // 循环遍历15组时间设置
-                    while (timeQueue.Count > 0 && isCollectingData)
+                    while (timeQueue.Count > 0)
                     {
                         List<List<double>> curData = new List<List<double>>();
 
                         var data = timeQueue.Dequeue();
-                        Stopwatch stopwatch = new Stopwatch();
-                        stopwatch.Start(); // 重置并启动计时器
 
-                        // 从 start 开始一直采集数据
-                        while (stopwatch.ElapsedMilliseconds >= data.start && isCollectingData)
+                        Stopwatch stopwatch = Stopwatch.StartNew();// 重置并启动计时器
+
+                        // Wait until the start time is reached
+                        while (stopwatch.ElapsedMilliseconds < data.start)
                         {
-                            visaClient.Write("CREAD?");
-                            // 初始化一个标志来跟踪响应是否已处理
-                            bool responseStableProcessed = false;
-
-                            while (!responseStableProcessed)
-                            {
-                                byte[] responseBytes = visaClient.Read(10240);
-
-                                // 检查响应是否为空
-                                if (responseBytes.Length > 0)
-                                {
-                                    string result = Encoding.UTF8.GetString(responseBytes);
-                                    curData.Add(ProcessingCReadResult(result));
-                                    // 打印响应
-                                    //Console.WriteLine("Stable Phase Data: " + DateTime.Now + "=" + result);
-                                    // 标记响应已处理
-                                    responseStableProcessed = true;
-                                }
-                            }
-                            // 收到停止收集信号
                             if (!isCollectingData)
                             {
+                                return; // Exit if data collection is stopped
+                            }
+                            await Task.Delay(1); // Small delay to prevent busy-waiting
+                        }
+
+                        // 从 start 开始一直采集数据
+
+                        while (isCollectingData)
+                        {
+                            visaClient.Write("CREAD?");
+                            byte[] responseBytes = visaClient.Read(10240);
+
+                            if (responseBytes.Length > 0)
+                            {
+                                string result = Encoding.UTF8.GetString(responseBytes);
+                                Console.WriteLine("result: " + result);
+                                curData.Add(ProcessingCReadResult(result));
+                            }
+
+                            // 收到停止收集信号
+                            if (!isCollectingData)
+                            //if (stopwatch.ElapsedMilliseconds > 2000)
+                            {
+                                stopwatch.Stop();
                                 // 计时结束
                                 double duration = durationWatch.ElapsedMilliseconds / 1000.0; ;
                                 durationWatch.Stop();
+
+                                all.Curs.Add(ProcessData(curData, data));
+                                all.SerialNo = this.currentSerialNo;
+
                                 break;
                             }
                         }
-
-                        stopwatch.Stop();
-
-                        //Console.WriteLine("stableData=" + stableData.Count + ", mutationData=" + mutationData.Count);
-                        all.Curs.Add(ProcessData(curData, data));
-                        all.SerialNo = this.currentSerialNo;
                     }
-                    currentDataQueue.AddData(all);
+                    Console.WriteLine("all Data: " + all);
+                    _ = currentDataQueue.AddData(all);
                 }
             }
             await Task.Delay(100);
@@ -247,8 +254,8 @@ namespace upper_com
 
             double stable = smoothList.Count > 0 ? smoothList.Average() : 0;
             double mutation = allList.Max();
-
-            return ((stable, mutation));
+            Console.WriteLine("stable: " + stable + ", mutation=" + mutation);
+            return (stable, mutation);
         }
 
         private List<double> ProcessingCReadResult(string result)
@@ -315,17 +322,16 @@ namespace upper_com
             Random rand = new Random();
             for (int i = 0; i < 100; i++)
             {
-                
+
                 List<(double i1, double i2)> pairs = new List<(double, double)>();
 
-                for (int j = 0; j < 15; j++)
+                for (int j = 0; j < 4500; j++)
                 {
                     pairs.Add((rand.NextDouble(), rand.NextDouble()));
                 }
                 CurrentData data = new CurrentData(1001, pairs);
                 queues[i % 2].AddData(data);
-                var averages = queues[i % 2].GetAverage();
-                Console.WriteLine($"Current averages: i1 = {averages.meanI1}, i2 = {averages.meanI2}");
+
             }
         }
 

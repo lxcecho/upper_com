@@ -330,43 +330,13 @@ namespace upper_com
                     double[] xValues = new double[2];
 
                     // 从 Excel 文件中加载相应的电流值
-                    List<(double currentValue, double duration)> curs = LoadCurrentValuesFromExcelForSheet2(serialNo);
-
-                    List<double> values = new List<double>();
-                    List<double> durations = new List<double>();
+                    List<double> curs = LoadCurrentValuesFromExcelForSheet2(serialNo);
 
                     if (curs.Count > 0)
                     {
-                        foreach (var (currentValue, duration) in curs)
-                        {
-                            values.Add(currentValue);
-                            durations.Add(duration);
-                            //Console.WriteLine($"Current Value: {currentValue}, Duration: {duration}");
-                        }
-                    }
-
-                    if (durations.Count > 0 && durations.Distinct().ToList().Count > 0)
-                    {
-                        xValues[0] = 0.0;
-                        xValues[1] = durations.Distinct().ToList()[0];
-                    }
-
-                    if (values.Count > 0)
-                    {
                         // 创建并显示新的ChartForm
-                        ChartForm chartFormForCurrent = new ChartForm(xValues, values.ToArray(), serialNo);
+                        ChartForm chartFormForCurrent = new ChartForm(curs.ToArray(), serialNo);
                         chartFormForCurrent.Show();
-                        /*if (chartFormForCurrent == null || chartFormForCurrent.IsDisposed)
-                        {
-                            // 创建并显示新的ChartForm
-                            chartFormForCurrent = new ChartForm(xValues, values.ToArray(), serialNo);
-                            chartFormForCurrent.Show();
-                        }
-                        else
-                        {
-                            // 更新现有的ChartForm的数据
-                            chartFormForCurrent.UpdateChart(values.ToArray(), serialNo);
-                        }*/
                     }
                     else
                     {
@@ -391,44 +361,14 @@ namespace upper_com
                 // 检查第一列的值是否为 null
                 if (row.Cells[0].Value != null)
                 {
-                    string serialNo = row.Cells[0].Value.ToString(); // 假设第一列是 serialNo
-
-                    List<double> values = new List<double>();
-                    List<double> durations = new List<double>();
-                    double[] xValues = new double[2];
+                    string volNo = row.Cells[0].Value.ToString();
 
                     // 从 Excel 文件中加载相应的电压值
-                    List<(double currentValue, double duration)> vals = LoadVoltageValuesFromExcel(serialNo);
-
-                    foreach (var (vol, duration) in vals)
-                    {
-                        values.Add(vol);
-                        durations.Add(duration);
-                        //Console.WriteLine($"Current Value: {vol}, Duration: {duration}");
-                    }
-
-
-                    if (durations.Count > 0)
-                    {
-                        xValues[0] = 0.0;
-                        xValues[1] = durations.Distinct().ToList()[0];
-                    }
-
+                    List<double> values = LoadVoltageValuesFromExcel(volNo);
                     if (values.Count > 0)
                     {
-                        ChartForm chartFormForVoltage = new ChartForm(/*xValues, */values.ToArray(), serialNo);
+                        ChartForm chartFormForVoltage = new ChartForm(values.ToArray(), volNo);
                         chartFormForVoltage.Show();
-                        /*if (chartFormForVoltage == null || chartFormForVoltage.IsDisposed)
-                        {
-                            // 创建并显示新的ChartForm
-                            chartFormForVoltage = new ChartForm(*//*xValues, *//*values.ToArray(), serialNo);
-                            chartFormForVoltage.Show();
-                        }
-                        else
-                        {
-                            // 更新现有的ChartForm的数据
-                            chartFormForVoltage.UpdateChart(*//*xValues, *//*values.ToArray(), serialNo);
-                        }*/
                     }
                     else
                     {
@@ -442,9 +382,9 @@ namespace upper_com
             }
         }
 
-        private List<(double currentValue, double duration)> LoadCurrentValuesFromExcelForSheet2(string serialNo)
+        private List<double> LoadCurrentValuesFromExcelForSheet2(string serialNo)
         {
-            var curs = new List<(double currentValue, double duration)>();
+            var curs = new List<double>();
 
             lock (currentFileLock)
             {
@@ -455,11 +395,11 @@ namespace upper_com
                         using (var fs = new FileStream(currentFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             IWorkbook workbook = new XSSFWorkbook(fs);
-                            ISheet sheet = workbook.GetSheet("Sheet2");
+                            ISheet sheet = workbook.GetSheet("Sheet1");
 
                             if (sheet != null)
                             {
-                                for (int i = 0; i <= sheet.LastRowNum; i++)
+                                for (int i = 1; i <= sheet.LastRowNum; i++)
                                 {
                                     IRow row = sheet.GetRow(i);
                                     if (row != null)
@@ -467,14 +407,32 @@ namespace upper_com
                                         ICell serialNoCell = row.GetCell(0);
                                         if (serialNoCell != null && serialNoCell.ToString() == serialNo)
                                         {
-                                            ICell currentValueCell = row.GetCell(1);
-                                            ICell durationCell = row.GetCell(2);
+                                            ICell sa = row.GetCell(2);
+                                            ICell su = row.GetCell(3);
+                                            ICell sl = row.GetCell(4);
+                                            ICell ma = row.GetCell(5);
+                                            ICell mu = row.GetCell(6);
+                                            ICell ml = row.GetCell(7);
 
-                                            if (currentValueCell != null && durationCell != null &&
-                                                double.TryParse(currentValueCell.ToString(), out double currentValue) &&
-                                                double.TryParse(durationCell.ToString(), out double duration))
+                                            if ((sa != null
+                                                && su != null
+                                                && sl != null
+                                                && ma != null
+                                                && mu != null
+                                                && ml != null)
+                                                && double.TryParse(sa.ToString(), out double stableA)
+                                                && double.TryParse(su.ToString(), out double stableU)
+                                                && double.TryParse(sl.ToString(), out double stableL)
+                                                && double.TryParse(ma.ToString(), out double mutationA)
+                                                && double.TryParse(mu.ToString(), out double mutationU)
+                                                && double.TryParse(ml.ToString(), out double mutationL))
                                             {
-                                                curs.Add((currentValue, duration));
+                                                curs.Add(stableA);
+                                                curs.Add(stableU);
+                                                curs.Add(stableL);
+                                                curs.Add(mutationA);
+                                                curs.Add(mutationU);
+                                                curs.Add(mutationL);
                                             }
                                         }
                                     }
@@ -503,9 +461,9 @@ namespace upper_com
             return curs;
         }
 
-        private List<(double currentValue, double duration)> LoadVoltageValuesFromExcel(string serialNo)
+        private List<double> LoadVoltageValuesFromExcel(string volNo)
         {
-            List<(double currentValue, double duration)> voltageValues = new List<(double currentValue, double duration)>();
+            List<double> voltageValues = new List<double>();
 
             lock (voltageFileLock)
             {
@@ -516,25 +474,29 @@ namespace upper_com
                         using (var fs = new FileStream(voltageFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
                         {
                             IWorkbook workbook = new XSSFWorkbook(fs);
-                            ISheet sheet = workbook.GetSheet("Sheet2");
+                            ISheet sheet = workbook.GetSheet("Sheet1");
 
                             if (sheet != null)
                             {
-                                for (int i = 0; i <= sheet.LastRowNum; i++)
+                                for (int i = 1; i <= sheet.LastRowNum; i++)
                                 {
                                     IRow row = sheet.GetRow(i);
                                     if (row != null)
                                     {
-                                        ICell serialNoCell = row.GetCell(0);
-                                        if (serialNoCell != null && serialNoCell.ToString() == serialNo)
+                                        ICell volNoCell = row.GetCell(0);
+                                        if (volNoCell != null && volNoCell.ToString() == volNo)
                                         {
-                                            ICell voltageValueCell = row.GetCell(1);
-                                            ICell durationCell = row.GetCell(2);
-                                            if (voltageValueCell != null && durationCell != null
-                                                && double.TryParse(voltageValueCell.ToString(), out double voltageValue)
-                                                && double.TryParse(durationCell.ToString(), out double duration))
+                                            ICell v1 = row.GetCell(1);
+                                            ICell vu = row.GetCell(2);
+                                            ICell vl = row.GetCell(3);
+                                            if (v1 != null && vu != null && vl != null
+                                                && double.TryParse(v1.ToString(), out double voltageValue)
+                                                && double.TryParse(vu.ToString(), out double voltageUpper)
+                                                && double.TryParse(vl.ToString(), out double voltageLower))
                                             {
-                                                voltageValues.Add((voltageValue, duration));
+                                                voltageValues.Add(voltageValue);
+                                                voltageValues.Add(voltageUpper);
+                                                voltageValues.Add(voltageLower);
                                             }
                                         }
                                     }
@@ -607,11 +569,11 @@ namespace upper_com
         private async void myBtn_Click(object sender, EventArgs e)
         {
             #region 本地调试
-            MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
-            test.TestData();
+            /*MultimeterDetection test = new MultimeterDetection(this.dataGridView1);
+            _ = test.TestData();
 
-            //PLCDetection testPlc = new PLCDetection(this.dataGridView2);
-            //testPlc.TestData();
+            PLCDetection testPlc = new PLCDetection(this.dataGridView2);
+            _ = testPlc.TestData();*/
             #endregion
 
             MyButton button = sender as MyButton;
@@ -677,7 +639,10 @@ namespace upper_com
 
             #region 正式环境
             // 要两个服务端都连接上才能进行开始采集数据
-            /*if (multimeterDetection.MultimerOpen() && plcDetection.PlcOpen())
+            if (multimeterDetection != null 
+                && plcDetection != null 
+                && multimeterDetection.MultimerOpen() 
+                && plcDetection.PlcOpenAsync().Result)
             {
                 if (button.IsPlaying)
                 {
@@ -719,17 +684,24 @@ namespace upper_com
                     {
                         multimeterDetection.SetInputDate(inputData);
                         multimeterDetection.SetIsPlaying(true);
-                        _ = multimeterDetection.MultimeterListenerHandler();
+                        //_ = multimeterDetection.MultimeterListenerHandler();
+                        await Task.Run(() => multimeterDetection.MultimeterListenerHandler());
                     }
 
                     if (plcDetection != null)
                     {
                         plcDetection.SetPlaying(true);
                         plcDetection.SetInputDate(inputData);
-                        _ = plcDetection.PlcListenerHandler();
+                        //_ = plcDetection.PlcListenerHandler();
+                        await Task.Run(() => plcDetection.PlcListenerHandler());
                     }
                 }
-            }*/
+            } else
+            {
+                MessageBox.Show("设备或PLC未连接，请先连接设备和PLC！！！");
+                button.IsPlaying = true;
+                return;
+            }
             #endregion
         }
 
@@ -786,14 +758,14 @@ namespace upper_com
             }
 
             #region TODO 万用表调试
-            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
+            /*multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
             if (multimeterDetection.MultimerOpen())
             {
                 this.multimerLabel.Text = "万用表已连接!";
                 this.multimerLabel.ForeColor = Color.DarkOliveGreen;
                 // 连接成功之后，立即下发初始化指令
                 multimeterDetection.SendConfigCommand();
-            }
+            }*/
             #endregion
 
             #region TODO PLC 调试
@@ -809,7 +781,7 @@ namespace upper_com
             #endregion
 
             #region 正式环境
-            /*multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
+            multimeterDetection = new MultimeterDetection(this.myLED2, this.dataGridView1, multimerIpAddress);
             if (multimeterDetection.MultimerOpen())
             {
                 this.multimerLabel.Text = "万用表已连接!";
@@ -824,7 +796,7 @@ namespace upper_com
             {
                 this.plcLabel.Text = "PLC已连接!";
                 this.plcLabel.ForeColor = Color.DarkOliveGreen;
-            }*/
+            }
             #endregion
         }
 
@@ -854,6 +826,5 @@ namespace upper_com
             }
             return false;
         }
-
     }
 }
